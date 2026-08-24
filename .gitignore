@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+.wrangler
+.firebase
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+firebase-functions/lib
+firebase-functions/node_modules
+.vscode/*
+!.vscode/extensions.json

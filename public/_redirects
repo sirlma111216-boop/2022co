@@ -1,0 +1,4 @@
+# SPA 라우팅 — /s1, /final 같은 주소로 직접 들어와도 앱이 뜨게 한다.
+# /api/* 는 Cloudflare Pages Functions(functions/api/*)가 먼저 처리하므로 여기 걸리지 않는다.
+# (로컬 wrangler는 이 규칙을 self-loop로 보고 경고하지만, 배포 환경에서는 정상 동작한다.)
+/*    /index.html   200
