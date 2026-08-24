@@ -258,22 +258,51 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST -H "Content-Type: application/json" -
    - Framework preset: `Vite`
    - Build command: `npm run build`
    - Build output directory: `dist`
-4. **Settings → Variables and Secrets** 에서 값을 등록합니다.
+   Node 버전은 저장소의 `.node-version`(20)을 따라갑니다. 따로 설정하지 않아도 됩니다.
 
-| 이름 | 타입 | 값 |
-|---|---|---|
-| `VITE_FIREBASE_*` (6개) | Variable | Firebase 설정값 (빌드에 필요) |
-| `GCP_SERVICE_ACCOUNT` | **Secret** | 서비스 계정 JSON 전체 |
-| `GEN_AI_MODEL` | Variable | `gemini-2.5-flash-lite` |
-| `AI_RATE_PER_MIN` | Variable | `6` |
+4. **Settings → 환경변수(Variables and Secrets)** 에 값을 등록합니다.
+   **빌드 시점에 필요한 값과 런타임(서버 함수)에 필요한 값이 다릅니다.** 여기서 가장 많이 막힙니다.
 
-> ⚠️ **Build 섹션의 변수가 아니라 런타임 Variables and Secrets** 입니다. 서버 함수가 읽는 값은 이쪽입니다.
-> `GCP_SERVICE_ACCOUNT` 는 반드시 **Secret** 타입으로 등록하세요.
+   **빌드용** — `vite build` 가 읽어 번들에 넣습니다. 없으면 배포본이 계속 "로컬 저장 모드"로 뜹니다.
+
+   | 이름 | 타입 |
+   |---|---|
+   | `VITE_FIREBASE_API_KEY` | Variable |
+   | `VITE_FIREBASE_AUTH_DOMAIN` | Variable |
+   | `VITE_FIREBASE_PROJECT_ID` | Variable |
+   | `VITE_FIREBASE_STORAGE_BUCKET` | Variable |
+   | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Variable |
+   | `VITE_FIREBASE_APP_ID` | Variable |
+
+   **런타임용** — 서버 함수(`functions/api/ai-review.ts`)만 읽습니다. 브라우저로 나가지 않습니다.
+
+   | 이름 | 타입 | 값 |
+   |---|---|---|
+   | `GCP_SERVICE_ACCOUNT` | **Secret** | 서비스 계정 JSON 전체 |
+   | `GEN_AI_MODEL` | Variable | `gemini-2.5-flash-lite` |
+   | `AI_RATE_PER_MIN` | Variable | `6` |
+
+   > ⚠️ `GCP_SERVICE_ACCOUNT` 는 반드시 **Secret** 타입으로 등록하세요.
+   > Production / Preview 양쪽에 모두 넣고, **변수를 추가한 뒤에는 재배포(Retry deployment)** 를 눌러야
+   > 빌드용 변수가 반영됩니다.
 
 5. Deploy를 누르면 2~5분 뒤 주소가 나옵니다.
 
-배포 후 **실제 배포 주소에서** AI 버튼을 몇 번 눌러 확인하세요.
-로컬에서 되는 것과 엣지에서 되는 것은 다른 문제입니다.
+### 배포 직후 반드시 해야 하는 두 가지
+
+이걸 빠뜨리면 배포는 됐는데 기능만 조용히 실패합니다.
+
+1. **Firebase 승인된 도메인 추가** — Firebase 콘솔 → Authentication → Settings → 승인된 도메인에
+   `<프로젝트>.pages.dev`(와 커스텀 도메인)를 추가합니다. 안 하면 강사 Google 로그인이 실패합니다.
+2. **Firestore 규칙·인덱스 배포** — [3-5](#3-5-보안-규칙과-인덱스-올리기) 를 아직 안 했다면 지금 합니다.
+   안 하면 담벼락 읽기·쓰기가 전부 거부됩니다.
+
+### 배포 확인
+
+1. `/s1` 을 주소창에 직접 입력했을 때 404가 아닌지 (SPA 라우팅)
+2. 화면 오른쪽 위가 **"실시간 공유"** 인지 (아니면 `VITE_FIREBASE_*` 미반영 → 재배포)
+3. AI 버튼을 **간격을 두고 4회 이상** — 로컬에서 되는 것과 엣지에서 되는 것은 다른 문제입니다.
+   실패 시 화면 메시지 끝에 원인 요약(`HTTP 403 …`)이 함께 나오니 그것으로 진단하세요.
 
 ### 5-B. Firebase Hosting + Cloud Functions
 
