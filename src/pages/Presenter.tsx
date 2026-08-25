@@ -88,17 +88,37 @@ export default function Presenter() {
           <Button onClick={() => void repo.signInInstructor()}>
             <LogIn className="h-4 w-4" /> Google로 로그인
           </Button>
-          {user && (
+          {/* 익명 계정(= 연수생으로 입장한 상태)에는 로그아웃을 노출하지 않는다.
+              누르면 참가자 신원이 사라져 작성 중이던 설계안과 연결이 끊긴다. */}
+          {user && !user.isAnonymous && (
             <Button variant="quiet" onClick={() => void repo.signOutInstructor()}>
               <LogOut className="h-4 w-4" /> 로그아웃
             </Button>
           )}
         </div>
-        {user && (
-          <p className="mt-5 rounded-md bg-canvas-parchment px-4 py-3 text-caption text-ink-80">
-            현재 로그인: {user.email ?? user.uid}
+
+        {/* instructors 에 등록해야 하는 UID는 'Google 계정의 UID'다.
+            연수생으로 입장했을 때 생기는 익명 UID를 여기 보여 주면 그것을 등록하게 되고,
+            그 문서는 영원히 매칭되지 않는다. 그래서 익명 계정은 UID를 아예 표시하지 않는다. */}
+        {user && !user.isAnonymous ? (
+          <div className="mt-5 rounded-md bg-canvas-parchment px-4 py-3 text-caption text-ink-80">
+            <p>
+              현재 로그인: <strong className="font-semibold text-ink">{user.email ?? user.uid}</strong>
+            </p>
+            <p className="mt-1 text-ink-48">
+              아래 UID를 Firestore <code className="rounded-xs bg-canvas px-1">instructors</code> 컬렉션의
+              문서 ID로 만들어 주세요.
+            </p>
+            <code className="mt-2 block select-all break-all rounded-sm bg-canvas px-3 py-2 text-ink">
+              {user.uid}
+            </code>
+          </div>
+        ) : (
+          <p className="mt-5 rounded-md bg-canvas-parchment px-4 py-3 text-caption text-ink-48">
+            아직 Google 계정으로 로그인하지 않았습니다.
+            {user?.isAnonymous && " (지금은 연수생으로 입장한 상태입니다.)"}
             <br />
-            <span className="text-ink-48">UID: {user.uid}</span>
+            로그인하면 등록해야 할 UID가 여기에 표시됩니다.
           </p>
         )}
       </div>

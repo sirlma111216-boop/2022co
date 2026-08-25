@@ -17,8 +17,8 @@ export function isFilled(s: string | undefined | null, min = 2) {
 /** "방금", "3분 전" 같은 상대 시간 */
 export function relativeTime(ts: number) {
   const diff = Date.now() - ts;
-  if (diff < 45_000) return "방금";
   const m = Math.floor(diff / 60_000);
+  if (m < 1) return "방금"; // "0분 전"이 나오지 않게 한다
   if (m < 60) return `${m}분 전`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}시간 전`;
