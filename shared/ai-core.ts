@@ -195,6 +195,21 @@ interface ServiceAccount {
 }
 
 /**
+ * 붙여넣기 과정에서 앞뒤에 딸려 온 군더더기를 걷어 내고 JSON 본문만 남긴다.
+ *
+ * 대시보드 textarea에 사람이 직접 붙여넣는 값이라, 감싸는 따옴표·BOM·제로폭 문자·
+ * 앞뒤 설명 문구가 섞여 들어오는 일이 잦다. 게다가 Secret은 저장하면 다시 볼 수 없어서
+ * 사용자가 눈으로 확인할 방법이 없다. 그러니 받아들이는 쪽에서 관대해야 한다.
+ */
+function extractJsonObject(raw: string): string {
+  const s = raw.trim();
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return s;
+  return s.slice(start, end + 1);
+}
+
+/**
  * GCP_SERVICE_ACCOUNT 파싱 실패 원인을 좁혀 준다.
  *
  * 값 자체(비밀키)는 절대 메시지에 담지 않는다. 길이·첫 글자·끝 글자만 본다.
@@ -207,16 +222,16 @@ function describeServiceAccountProblem(raw: string): string {
   if (v.includes("apiKey") || v.includes("authDomain")) {
     return "GCP_SERVICE_ACCOUNT 에 Firebase 웹 설정값(firebaseConfig)이 들어갔습니다. 이 칸에는 Google Cloud에서 내려받은 서비스 계정 키 파일(.json)의 내용이 들어가야 합니다.";
   }
-  if (!v.startsWith("{")) {
-    return `GCP_SERVICE_ACCOUNT 가 '{' 로 시작하지 않습니다. 파일 경로나 다른 값이 들어간 것 같습니다. 서비스 계정 키 .json 파일을 열어 내용 전체를 붙여넣어 주세요. (현재 ${n}자)`;
-  }
-  if (!v.endsWith("}")) {
-    return `GCP_SERVICE_ACCOUNT 값이 중간에 잘렸습니다. '}' 로 끝나야 합니다. 파일 내용을 처음부터 끝까지 다시 복사해 주세요. (현재 ${n}자)`;
+  if (!v.includes("{") || !v.includes("}")) {
+    return `GCP_SERVICE_ACCOUNT 에 JSON이 들어 있지 않습니다. 파일 경로가 아니라, 서비스 계정 키 .json 파일을 열어 내용 전체를 붙여넣어야 합니다. (현재 ${n}자)`;
   }
   if (n < 1200) {
     return `GCP_SERVICE_ACCOUNT 값이 너무 짧습니다(${n}자). 정상적인 서비스 계정 키는 보통 2,000자가 넘습니다. 일부만 복사된 것 같습니다.`;
   }
-  return `GCP_SERVICE_ACCOUNT 값을 JSON으로 읽지 못했습니다. 따옴표가 바뀌었거나 일부 문자가 손상되었을 수 있습니다. 파일 내용 전체를 다시 복사해 붙여넣어 주세요. (현재 ${n}자)`;
+  // 여기까지 왔다면 앞뒤 군더더기는 이미 걷어 냈는데도 파싱이 안 된 경우다.
+  // 내용 손상이 의심되므로 첫 글자의 코드포인트를 남겨 진단을 돕는다(비밀값은 노출하지 않는다).
+  const cp = v.codePointAt(0)?.toString(16).toUpperCase().padStart(4, "0") ?? "????";
+  return `GCP_SERVICE_ACCOUNT 값을 JSON으로 읽지 못했습니다. 따옴표가 " 로 바뀌었거나 줄바꿈이 손상되었을 수 있습니다. 메모장으로 파일을 열어 Ctrl+A → Ctrl+C 로 다시 복사해 주세요. (현재 ${n}자, 첫 글자 U+${cp})`;
 }
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
@@ -350,7 +365,7 @@ async function runAi(env: Env, system: string, prompt: string): Promise<string> 
   if (saRaw) {
     let sa: ServiceAccount;
     try {
-      sa = JSON.parse(saRaw) as ServiceAccount;
+      sa = JSON.parse(extractJsonObject(saRaw)) as ServiceAccount;
     } catch {
       // 값 자체는 절대 노출하지 않는다. 길이와 첫/끝 글자만으로 원인을 좁혀 준다.
       throw new Error(describeServiceAccountProblem(saRaw));
