@@ -194,6 +194,31 @@ interface ServiceAccount {
   project_id: string;
 }
 
+/**
+ * GCP_SERVICE_ACCOUNT 파싱 실패 원인을 좁혀 준다.
+ *
+ * 값 자체(비밀키)는 절대 메시지에 담지 않는다. 길이·첫 글자·끝 글자만 본다.
+ * 정상적인 서비스 계정 키는 보통 2,000자를 넘으므로 길이만으로도 잘림을 거의 확실히 알 수 있다.
+ */
+function describeServiceAccountProblem(raw: string): string {
+  const v = raw.trim();
+  const n = v.length;
+  if (!n) return "GCP_SERVICE_ACCOUNT 값이 비어 있습니다.";
+  if (v.includes("apiKey") || v.includes("authDomain")) {
+    return "GCP_SERVICE_ACCOUNT 에 Firebase 웹 설정값(firebaseConfig)이 들어갔습니다. 이 칸에는 Google Cloud에서 내려받은 서비스 계정 키 파일(.json)의 내용이 들어가야 합니다.";
+  }
+  if (!v.startsWith("{")) {
+    return `GCP_SERVICE_ACCOUNT 가 '{' 로 시작하지 않습니다. 파일 경로나 다른 값이 들어간 것 같습니다. 서비스 계정 키 .json 파일을 열어 내용 전체를 붙여넣어 주세요. (현재 ${n}자)`;
+  }
+  if (!v.endsWith("}")) {
+    return `GCP_SERVICE_ACCOUNT 값이 중간에 잘렸습니다. '}' 로 끝나야 합니다. 파일 내용을 처음부터 끝까지 다시 복사해 주세요. (현재 ${n}자)`;
+  }
+  if (n < 1200) {
+    return `GCP_SERVICE_ACCOUNT 값이 너무 짧습니다(${n}자). 정상적인 서비스 계정 키는 보통 2,000자가 넘습니다. 일부만 복사된 것 같습니다.`;
+  }
+  return `GCP_SERVICE_ACCOUNT 값을 JSON으로 읽지 못했습니다. 따옴표가 바뀌었거나 일부 문자가 손상되었을 수 있습니다. 파일 내용 전체를 다시 복사해 붙여넣어 주세요. (현재 ${n}자)`;
+}
+
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 function base64UrlEncode(bytes: Uint8Array): string {
@@ -327,7 +352,8 @@ async function runAi(env: Env, system: string, prompt: string): Promise<string> 
     try {
       sa = JSON.parse(saRaw) as ServiceAccount;
     } catch {
-      throw new Error("GCP_SERVICE_ACCOUNT 값이 올바른 JSON 형식이 아닙니다.");
+      // 값 자체는 절대 노출하지 않는다. 길이와 첫/끝 글자만으로 원인을 좁혀 준다.
+      throw new Error(describeServiceAccountProblem(saRaw));
     }
     if (!sa.client_email || !sa.private_key || !sa.project_id) {
       throw new Error("GCP_SERVICE_ACCOUNT JSON에 필수 필드(client_email, private_key, project_id)가 없습니다.");
