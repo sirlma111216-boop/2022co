@@ -7,6 +7,36 @@ import { useSession } from "@/lib/session-context";
 import { SCHOOL_LEVELS, SUBJECTS } from "@/lib/types";
 import { normalizeCode } from "@/lib/utils";
 
+/**
+ * 입장 실패 원인을 한국어로 풀어 준다.
+ *
+ * 일반화된 "입장하지 못했습니다"만 보여 주면 연수 당일에 원인을 찾을 수 없다.
+ * Firebase 설정 실수는 대부분 아래 몇 가지 코드로 나타나므로, 무엇을 고쳐야 하는지까지 적는다.
+ */
+function explainJoinError(e: unknown): string {
+  const code = typeof e === "object" && e && "code" in e ? String((e as { code: unknown }).code) : "";
+  const map: Record<string, string> = {
+    "auth/admin-restricted-operation":
+      "Firebase 콘솔에서 익명 로그인이 꺼져 있습니다. Authentication → Sign-in method → '익명'을 사용 설정해 주세요.",
+    "auth/operation-not-allowed":
+      "Firebase 콘솔에서 익명 로그인이 꺼져 있습니다. Authentication → Sign-in method → '익명'을 사용 설정해 주세요.",
+    "auth/configuration-not-found":
+      "Firebase 프로젝트에 Authentication이 아직 설정되지 않았습니다. 콘솔에서 Authentication → 시작하기를 눌러 주세요.",
+    "auth/unauthorized-domain":
+      "이 주소가 Firebase의 승인된 도메인 목록에 없습니다. Authentication → Settings → 승인된 도메인에 추가해 주세요.",
+    "auth/network-request-failed": "네트워크에 연결하지 못했습니다. 인터넷 상태를 확인해 주세요.",
+    "permission-denied":
+      "Firestore 보안 규칙이 접근을 막고 있습니다. `firebase deploy --only firestore:rules` 로 규칙을 올려 주세요.",
+    unavailable:
+      "Firestore 데이터베이스에 연결하지 못했습니다. 콘솔에서 Firestore Database가 생성되어 있는지 확인해 주세요.",
+    "failed-precondition":
+      "Firestore 데이터베이스가 아직 만들어지지 않았습니다. 콘솔에서 Firestore Database → 데이터베이스 만들기를 눌러 주세요.",
+  };
+  if (map[code]) return map[code];
+  const raw = e instanceof Error ? e.message : String(e);
+  return `입장하지 못했습니다. 잠시 후 다시 시도해 주세요. (원인: ${code || raw.slice(0, 120)})`;
+}
+
 export default function Join() {
   const navigate = useNavigate();
   const { join, joined, profile, mode, leave } = useSession();
@@ -33,8 +63,8 @@ export default function Join() {
         schoolLevel,
       });
       navigate("/start");
-    } catch {
-      setError("입장하지 못했습니다. 연수 코드를 확인하고 다시 시도해 주세요.");
+    } catch (e) {
+      setError(explainJoinError(e));
     } finally {
       setBusy(false);
     }

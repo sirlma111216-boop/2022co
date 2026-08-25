@@ -261,9 +261,14 @@ instructors/{uid}
   email, displayName, createdAt      ← 강사 화이트리스트 (콘솔에서 수동 생성)
 ```
 
-### 인덱스
-* `posts`: `activityId ASC, isPinned DESC, createdAt DESC`
-* `posts`: `activityId ASC, isPinned DESC, likes DESC`
+### 인덱스 — 복합 인덱스를 만들지 않는다
+
+모든 쿼리를 **등호 필터만** 쓰도록 제한했다. Firestore의 자동 단일 필드 인덱스로 처리되므로
+`firestore.indexes.json` 은 비어 있고, 인덱스 배포 단계 자체가 없다.
+
+정렬(고정 글 우선 → 최신순 / 공감순)은 `onSnapshot` 콜백에서 클라이언트가 한다.
+한 세션이 수십 명 규모라 성능 문제가 없고, 대신 **연수 당일 "인덱스가 필요합니다" 오류로
+담벼락이 통째로 멈추는 사고**를 구조적으로 없앤다. 이 교환은 의도된 것이다.
 
 ---
 

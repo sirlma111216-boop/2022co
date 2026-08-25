@@ -19,7 +19,6 @@ import {
   increment,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -467,12 +466,10 @@ const fsRepo: Repo = {
   },
 
   watchPosts(sessionId, activityId, cb) {
-    const q = query(
-      postsCol(sessionId),
-      where("activityId", "==", activityId),
-      orderBy("createdAt", "desc"),
-      limit(200),
-    );
+    // orderBy 를 쓰지 않는다. 등호 필터만 쓰면 Firestore의 자동 단일 필드 인덱스로 처리되어
+    // 복합 인덱스를 따로 배포할 필요가 없다 — 연수 당일 "인덱스가 없습니다" 사고를 없애기 위한 선택.
+    // 정렬(고정 글 우선 → 최신순)은 어차피 아래에서 클라이언트가 다시 한다. 한 세션 규모가 수십 명이라 문제없다.
+    const q = query(postsCol(sessionId), where("activityId", "==", activityId), limit(300));
     return onSnapshot(
       q,
       (snap) => {

@@ -138,7 +138,7 @@ VITE_FIREBASE_APP_ID=1:1234567890:web:abcdef
 
 `npm run dev` 를 다시 실행하면 화면 오른쪽 위 표시가 **로컬 저장 → 실시간 공유** 로 바뀝니다.
 
-### 3-5. 보안 규칙과 인덱스 올리기
+### 3-5. 보안 규칙 올리기
 
 Firebase CLI를 설치하고 로그인합니다.
 
@@ -156,11 +156,14 @@ firebase use --add
 
 (목록에서 방금 만든 프로젝트를 선택하고, 별칭은 `default` 로 둡니다.)
 
-규칙과 인덱스를 올립니다.
+규칙을 올립니다.
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules
 ```
+
+> 복합 인덱스는 필요 없습니다. 모든 쿼리를 등호 필터만 쓰도록 만들어 두었기 때문에
+> 인덱스 배포 단계가 아예 없습니다.
 
 ### 3-6. 강사 계정 등록하기
 
@@ -255,7 +258,8 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST -H "Content-Type: application/json" -
 1. 이 저장소를 GitHub에 올립니다.
 2. Cloudflare 대시보드 → **Workers & Pages → Create → Pages → Connect to Git**
 3. 빌드 설정
-   - Framework preset: `Vite`
+   - Framework preset: `None` (목록에 Vite 항목이 없습니다. 프리셋은 아래 두 칸을 대신 채워 주는 기능일 뿐이라
+     직접 입력하면 결과가 같습니다. `VitePress`는 전혀 다른 도구이니 고르지 마세요.)
    - Build command: `npm run build`
    - Build output directory: `dist`
    Node 버전은 저장소의 `.node-version`(20)을 따라갑니다. 따로 설정하지 않아도 됩니다.
@@ -294,7 +298,7 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST -H "Content-Type: application/json" -
 
 1. **Firebase 승인된 도메인 추가** — Firebase 콘솔 → Authentication → Settings → 승인된 도메인에
    `<프로젝트>.pages.dev`(와 커스텀 도메인)를 추가합니다. 안 하면 강사 Google 로그인이 실패합니다.
-2. **Firestore 규칙·인덱스 배포** — [3-5](#3-5-보안-규칙과-인덱스-올리기) 를 아직 안 했다면 지금 합니다.
+2. **Firestore 규칙 배포** — [3-5](#3-5-보안-규칙-올리기) 를 아직 안 했다면 지금 합니다.
    안 하면 담벼락 읽기·쓰기가 전부 거부됩니다.
 
 ### 배포 확인
@@ -399,7 +403,6 @@ AI 점검 버튼을 누르면 "아직 연결되지 않았습니다" 안내가 �
 ├── firebase-functions/src/index.ts   Firebase Cloud Functions (대안)
 │
 ├── firestore.rules          보안 규칙
-├── firestore.indexes.json   복합 인덱스
 └── firebase.json
 ```
 
@@ -419,7 +422,6 @@ AI 점검 버튼을 누르면 "아직 연결되지 않았습니다" 안내가 �
 |---|---|
 | 오른쪽 위가 계속 **"로컬 저장"** | `.env.local` 의 `VITE_FIREBASE_*` 6개 중 하나라도 비어 있으면 로컬 모드입니다. 값을 채우고 `npm run dev` 를 다시 시작하세요. |
 | 담벼락이 비어 있음 | 같은 **연수 코드**로 들어왔는지 확인하세요. 코드가 다르면 서로의 글이 보이지 않도록 설계되어 있습니다. |
-| 담벼락 로딩 중 오류 | Firestore 복합 인덱스가 없는 경우입니다. `firebase deploy --only firestore:indexes` 를 실행하세요. |
 | 강사 대시보드에서 로그인만 반복됨 | `instructors/{내 UID}` 문서를 만들지 않았습니다. [3-6](#3-6-강사-계정-등록하기) 참고. |
 | AI 버튼이 회색 | 대상 칸이 비어 있습니다. 초안을 먼저 쓰면 활성화됩니다(의도된 동작입니다). |
 | "AI 점검 기능이 아직 연결되지 않았습니다" | 서버 함수가 배포되지 않은 정적 호스팅입니다. [5-A](#5-a-cloudflare-pages-권장) 또는 [5-B](#5-b-firebase-hosting--cloud-functions) 참고. |
