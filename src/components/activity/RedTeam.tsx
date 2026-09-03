@@ -62,7 +62,7 @@ export function RedTeam() {
     setAnswers(saved);
   }, [sessionId, uid]);
 
-  const taskReady = isFilled(design.graspsG, 5) || isFilled(design.graspsP, 5);
+  const taskReady = isFilled(design.graspsG) || isFilled(design.graspsP);
 
   // 처음 들어왔을 때의 과제를 '수정 전'으로 붙잡아 둔다. 이후에는 덮어쓰지 않는다.
   useEffect(() => {

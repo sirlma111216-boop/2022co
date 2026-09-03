@@ -9,11 +9,13 @@ import { Progress } from "@/components/ui/progress";
 import { Bars } from "@/components/poll/Poll";
 import { WallDialog } from "@/components/wall/Wall";
 import { TIMELINE } from "@/content/timeline";
-import { ICEBREAK_OPTIONS } from "@/content/examples";
+import { AUTOPSY_CASES, ICEBREAK_OPTIONS, QUESTION_JUDGE_OPTIONS } from "@/content/examples";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session-context";
 import {
   ACTIVITY_LABEL,
+  POLL_AUTOPSY,
+  POLL_QUESTION,
   STEPS,
   type ActivityId,
   type Participant,
@@ -62,10 +64,24 @@ export default function Presenter() {
     return { total, per };
   }, [participants]);
 
-  const pollData = ICEBREAK_OPTIONS.map((o) => ({
+  const polls = session?.pollResults ?? {};
+
+  // 아이스브레이킹은 예전부터 'A'~'D' 키를 그대로 쓰고,
+  // 이후 추가된 선택 활동은 `${pollId}_${보기}` 키를 쓴다.
+  const icebreakData = ICEBREAK_OPTIONS.map((o) => ({
     key: o.key,
     label: `${o.key}. ${o.label}`,
-    value: session?.pollResults?.[o.key] ?? 0,
+    value: polls[o.key] ?? 0,
+  }));
+  const autopsyData = AUTOPSY_CASES.map((c) => ({
+    key: c.key,
+    label: c.title,
+    value: polls[`${POLL_AUTOPSY}_${c.key}`] ?? 0,
+  }));
+  const questionData = QUESTION_JUDGE_OPTIONS.map((o) => ({
+    key: o.key,
+    label: `${o.key}. ${o.title}`,
+    value: polls[`${POLL_QUESTION}_${o.key}`] ?? 0,
   }));
 
   if (!authReady) {
@@ -239,14 +255,34 @@ export default function Presenter() {
               </ul>
             </Panel>
 
-            {/* 아이스브레이킹 결과 */}
-            <Panel title="아이스브레이킹 응답" sub="나는 수업을 어디서부터 만들까?">
-              <Bars data={pollData} />
-              <div className="mt-6 border-t border-hairline pt-5">
-                <p className="mb-3 text-caption font-semibold text-ink-48">
-                  이 수행과제로 충분할까요? (YES / NOT ENOUGH)
-                </p>
-                <Bars
+            {/* 선택 활동 응답 — 연수생 화면에 나오는 순서 그대로 */}
+            <Panel
+              title="선택 활동 응답"
+              sub="연수생 화면 순서대로 · 정답은 표시하지 않습니다"
+            >
+              <div className="space-y-6">
+                <PollBlock
+                  step="START"
+                  title="수업 부검실"
+                  question="가장 먼저 고쳐야 할 수업은?"
+                  data={autopsyData}
+                />
+                <PollBlock
+                  step="START"
+                  title="아이스브레이킹"
+                  question="나는 수업을 어디서부터 만들까?"
+                  data={icebreakData}
+                />
+                <PollBlock
+                  step="2교시"
+                  title="좋은 질문 판별"
+                  question="가장 오래 생각하게 만들 질문은?"
+                  data={questionData}
+                />
+                <PollBlock
+                  step="3교시"
+                  title="이 수행과제로 충분할까?"
+                  question="YES / NOT ENOUGH"
                   data={[
                     { key: "yes", label: "YES · 판단할 수 있다", value: session?.taskPollResults?.yes ?? 0 },
                     {
@@ -328,6 +364,33 @@ export default function Presenter() {
           sessionId={watching ?? undefined}
         />
       )}
+    </div>
+  );
+}
+
+function PollBlock({
+  step,
+  title,
+  question,
+  data,
+}: {
+  step: string;
+  title: string;
+  question: string;
+  data: { key: string; label: string; value: number }[];
+}) {
+  const total = data.reduce((a, b) => a + b.value, 0);
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-baseline gap-2">
+        <span className="rounded-pill bg-canvas-parchment px-2 py-0.5 text-fine font-semibold text-ink-48">
+          {step}
+        </span>
+        <span className="text-caption font-semibold text-ink">{title}</span>
+        <span className="text-fine text-ink-48">{question}</span>
+        {total === 0 && <span className="ml-auto text-fine text-ink-48">아직 응답 없음</span>}
+      </div>
+      <Bars data={data} />
     </div>
   );
 }

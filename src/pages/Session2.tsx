@@ -43,8 +43,8 @@ const PLACEMENTS = [
 
 export default function Session2() {
   const { design, update } = useSession();
-  const a2done = isFilled(design.enduringUnderstanding, 10);
-  const a3done = isFilled(design.keyInquiry, 8);
+  const a2done = isFilled(design.enduringUnderstanding);
+  const a3done = isFilled(design.keyInquiry);
   const kept = (design.unitItems ?? []).filter((i) => !i.dropped);
 
   return (
@@ -141,7 +141,7 @@ export default function Session2() {
           no="MISSION"
           title="30% 삭제 도전"
           minutes={10}
-          done={isFilled(design.commonThread, 4)}
+          done={isFilled(design.commonThread)}
           prompt={
             <>
               깊이 있는 학습을 위해서는 무엇을 더 넣을지보다,{" "}
@@ -225,7 +225,7 @@ export default function Session2() {
             <div className="w-full space-y-4">
               <ShareBar
                 activityId="a2"
-                canShare={isFilled(design.enduringUnderstanding, 8)}
+                canShare={isFilled(design.enduringUnderstanding)}
                 content={() => ({
                   단원: design.unitName,
                   "끝까지 남긴 것": kept.map((k) => k.text).join(", "),
@@ -408,7 +408,7 @@ export default function Session2() {
             <div className="w-full space-y-4">
               <ShareBar
                 activityId="a3"
-                canShare={isFilled(design.keyInquiry, 5)}
+                canShare={isFilled(design.keyInquiry)}
                 content={() => ({
                   "핵심 탐구질문": design.keyInquiry,
                   "확인 질문": design.inquiryFact,
@@ -521,10 +521,14 @@ export default function Session2() {
 
             {design.backwardPlacement && (
               <div className="appear mt-5 rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
+                {/* 고른 칸마다 되묻는 지점이 다르다 — 같은 문구를 돌려주면 판단한 보람이 없다 */}
                 <p className="text-body-sm leading-[1.72] text-ink">
-                  {design.backwardPlacement === "activity"
-                    ? "대부분의 활동이 여기에 놓입니다. 자연스러운 답입니다."
-                    : "그렇게 보실 수도 있습니다. 다만 대부분의 활동은 세 번째 칸에 놓입니다."}
+                  {design.backwardPlacement === "goal" &&
+                    "그 활동 자체가 목적지라고 보신 거군요. 그렇다면 한 가지만 물어보겠습니다. 그 활동을 하지 않고도 같은 이해에 도달할 수 있다면, 목표는 활동이 아니라 그 이해 쪽에 있습니다."}
+                  {design.backwardPlacement === "evidence" &&
+                    "그 활동에서 학생의 이해가 실제로 드러난다면 증거가 맞습니다. 다만 그러려면 '무엇을 보고 판단할지'가 활동 안에 정해져 있어야 합니다. 그 기준이 아직 없다면, 지금은 증거가 아니라 활동입니다."}
+                  {design.backwardPlacement === "activity" &&
+                    "대부분의 활동이 여기에 놓입니다. 자연스러운 답입니다."}
                 </p>
                 <p className="mt-2 text-body-sm leading-[1.72] text-ink-80">
                   활동이 중요하지 않다는 뜻이 아닙니다. 다만{" "}

@@ -63,6 +63,7 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
         knowledge: d.knowledgeUnderstanding,
         process: d.processSkill,
         value: d.valueAttitude,
+        coreAction: d.standardCoreAction,
       };
     case "enduring":
       return {
@@ -76,6 +77,7 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
         standard: d.achievementStandard,
         enduring: d.enduringUnderstanding,
         original: d.inquiryOriginal,
+        keyInquiry: d.keyInquiry,
         fact: d.inquiryFact,
         concept: d.inquiryConcept,
         debate: d.inquiryDebate,
@@ -99,7 +101,10 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
         process: d.processSkill,
         value: d.valueAttitude,
         enduring: d.enduringUnderstanding,
-        inquiry: [d.inquiryFact, d.inquiryConcept, d.inquiryDebate].filter(Boolean).join(" / "),
+        coreAction: d.standardCoreAction,
+        inquiry: [d.keyInquiry, d.inquiryFact, d.inquiryConcept, d.inquiryDebate]
+          .filter(Boolean)
+          .join(" / "),
         task: [d.graspsG, d.graspsR, d.graspsA, d.graspsS, d.graspsP, d.graspsS2]
           .filter(Boolean)
           .join(" | "),
@@ -115,14 +120,18 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
 
 /** 이 태스크를 실행할 만큼 초안이 준비되었는가 */
 export function taskReady(task: AiTask, d: DesignDoc): boolean {
-  const has = (s: string) => s.trim().length >= 5;
+  // 「초안을 먼저 쓴 뒤에만」이 원칙이지만, 기준을 높게 잡으면 짧고 정확하게 쓴 사람이
+  // 버튼을 못 누른다. 무언가 적었으면 열어 준다 — 판단은 AI 응답을 보고 본인이 한다.
+  const has = (s: string) => s.trim().length >= 2;
   switch (task) {
     case "standard":
       return has(d.achievementStandard) && (has(d.knowledgeUnderstanding) || has(d.processSkill));
     case "enduring":
       return has(d.enduringUnderstanding);
     case "inquiry":
-      return has(d.inquiryFact) || has(d.inquiryConcept) || has(d.inquiryDebate);
+      return (
+        has(d.keyInquiry) || has(d.inquiryFact) || has(d.inquiryConcept) || has(d.inquiryDebate)
+      );
     case "task":
       return has(d.graspsG) && has(d.graspsP);
     case "align":

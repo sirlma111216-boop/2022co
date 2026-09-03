@@ -12,24 +12,24 @@ export default function Final() {
   const [copied, setCopied] = useState("");
 
   const checks = [
-    { label: "성취기준", ok: isFilled(d.achievementStandard, 8), to: "/s1#a1" },
-    { label: "핵심 행동", ok: isFilled(d.standardCoreAction, 2), to: "/s1#a1" },
-    { label: "30% 삭제", ok: isFilled(d.commonThread, 4), to: "/s2#m1" },
-    { label: "남길 한 문장", ok: isFilled(d.enduringUnderstanding, 8), to: "/s2#a2" },
-    { label: "핵심 탐구질문", ok: isFilled(d.keyInquiry, 5), to: "/s2#a3" },
-    { label: "수행과제", ok: isFilled(d.graspsG, 5) && isFilled(d.graspsP, 3), to: "/s3#a4" },
+    { label: "성취기준", ok: isFilled(d.achievementStandard), to: "/s1#a1" },
+    { label: "핵심 행동", ok: isFilled(d.standardCoreAction), to: "/s1#a1" },
+    { label: "30% 삭제", ok: isFilled(d.commonThread), to: "/s2#m1" },
+    { label: "남길 한 문장", ok: isFilled(d.enduringUnderstanding), to: "/s2#a2" },
+    { label: "핵심 탐구질문", ok: isFilled(d.keyInquiry), to: "/s2#a3" },
+    { label: "수행과제", ok: isFilled(d.graspsG) && isFilled(d.graspsP), to: "/s3#a4" },
     {
       label: "RED TEAM",
-      ok: (d.redTeamFindings?.length ?? 0) > 0 || isFilled(d.performanceTaskAfter, 10),
+      ok: (d.redTeamFindings?.length ?? 0) > 0 || isFilled(d.performanceTaskAfter),
       to: "/s3#r1",
     },
     { label: "평가요소", ok: d.assessmentElements.some((e) => isFilled(e.name, 2)), to: "/s3#a5" },
     {
       label: "학습 경험",
-      ok: (d.learningExperiences ?? []).some((e) => isFilled(e.what, 4)) || isFilled(d.learningActivities, 8),
+      ok: (d.learningExperiences ?? []).some((e) => isFilled(e.what)) || isFilled(d.learningActivities),
       to: "/s3#a6",
     },
-    { label: "피드백 3문장", ok: isFilled(d.feedUp, 3) && isFilled(d.feedBack, 3) && isFilled(d.feedForward, 3), to: "/s3#s3-feedback" },
+    { label: "피드백 3문장", ok: isFilled(d.feedUp) && isFilled(d.feedBack) && isFilled(d.feedForward), to: "/s3#s3-feedback" },
   ];
   const doneCount = checks.filter((c) => c.ok).length;
 

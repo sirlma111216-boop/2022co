@@ -73,10 +73,10 @@ const CONTEXT_FIELDS: { field: DesignField; letter: string; label: string; help:
 export default function Session3() {
   const { design, update, session, votedTask, castTaskPoll, mode } = useSession();
 
-  const a4done = isFilled(design.graspsG, 8) && isFilled(design.graspsP, 5);
-  const r1done = (design.redTeamFindings?.length ?? 0) > 0 || isFilled(design.performanceTaskAfter, 10);
+  const a4done = isFilled(design.graspsG) && isFilled(design.graspsP);
+  const r1done = (design.redTeamFindings?.length ?? 0) > 0 || isFilled(design.performanceTaskAfter);
   const a5done = design.assessmentElements.some((e) => isFilled(e.name, 2));
-  const a6done = (design.learningExperiences ?? []).some((e) => isFilled(e.what, 4));
+  const a6done = (design.learningExperiences ?? []).some((e) => isFilled(e.what));
 
   const taskResults = session?.taskPollResults ?? { yes: 0, notEnough: 0 };
   const keyElement = design.assessmentElements[design.keyAssessmentIndex ?? 0];
@@ -333,7 +333,7 @@ export default function Session3() {
             <div className="w-full space-y-4">
               <ShareBar
                 activityId="a4"
-                canShare={isFilled(design.graspsG, 5)}
+                canShare={isFilled(design.graspsG)}
                 content={() => ({
                   단원: design.unitName,
                   "영속적 이해": design.enduringUnderstanding,

@@ -30,9 +30,12 @@ const SECTIONS = [
 
 export default function Session1() {
   const { design } = useSession();
+  // 완료 판정은 「썼는가」만 본다. 길이로 막으면 간결하게 쓴 사람이 손해를 본다.
   const done =
-    isFilled(design.achievementStandard, 10) &&
-    (isFilled(design.knowledgeUnderstanding) || isFilled(design.processSkill));
+    isFilled(design.achievementStandard) &&
+    (isFilled(design.knowledgeUnderstanding) ||
+      isFilled(design.processSkill) ||
+      isFilled(design.valueAttitude));
 
   return (
     <>
@@ -325,7 +328,7 @@ export default function Session1() {
             <div className="w-full space-y-4">
               <ShareBar
                 activityId="a1"
-                canShare={isFilled(design.achievementStandard, 8)}
+                canShare={isFilled(design.achievementStandard)}
                 content={() => ({
                   단원: design.unitName,
                   성취기준: design.achievementStandard,
