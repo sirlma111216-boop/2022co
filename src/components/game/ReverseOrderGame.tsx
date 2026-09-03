@@ -192,10 +192,10 @@ function SortableRow({
         <span className="block text-fine text-ink-48">{sub}</span>
       </span>
       <span className="flex shrink-0 flex-col">
-        <button type="button" onClick={onUp} aria-label="위로" className="rounded-md p-1 text-ink-48 hover:bg-canvas-parchment">
+        <button type="button" onClick={onUp} aria-label="위로" className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1 text-ink-48 hover:bg-canvas-parchment">
           <ChevronUp className="h-4 w-4" />
         </button>
-        <button type="button" onClick={onDown} aria-label="아래로" className="rounded-md p-1 text-ink-48 hover:bg-canvas-parchment">
+        <button type="button" onClick={onDown} aria-label="아래로" className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1 text-ink-48 hover:bg-canvas-parchment">
           <ChevronDown className="h-4 w-4" />
         </button>
       </span>

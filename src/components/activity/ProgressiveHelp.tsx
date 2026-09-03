@@ -72,7 +72,7 @@ function HelpButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-pill border border-hairline bg-canvas px-3 py-1.5 text-fine text-ink-80 transition-transform active:scale-95 hover:border-action hover:text-action"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-pill border border-hairline bg-canvas px-3.5 py-2 text-fine text-ink-80 transition-transform active:scale-95 hover:border-action hover:text-action sm:min-h-0 sm:px-3 sm:py-1.5"
     >
       <Icon className="h-3.5 w-3.5" />
       {children}

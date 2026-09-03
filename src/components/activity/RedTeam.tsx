@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ShieldAlert, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
 import { WallDialog } from "@/components/wall/Wall";
 import { useSession } from "@/lib/session-context";
 import { RED_TEAM_CHECKS } from "@/lib/types";
-import { cn, isFilled } from "@/lib/utils";
+import { cn, isFilled, safeJson } from "@/lib/utils";
 
 /** GRASPS 칸에서 '수정 전' 과제 요약문을 만든다 */
 function summarizeTask(d: {
@@ -38,14 +38,29 @@ function summarizeTask(d: {
  * 동료 자동 매칭은 연수 당일 안정성을 우선해 넣지 않았다.
  * 대신 기존 공유 담벼락을 그대로 재사용해 「동료 과제 공격하기」를 연결한다.
  */
+type Answers = Record<string, boolean | undefined>;
+
+/** '아니다'는 설계안에 남지 않으므로(구멍만 저장) 응답 상태는 이 기기에 따로 보관한다 */
+const ANSWERS_KEY = (sid: string | null, uid: string | null) => `bl.redteam.${sid ?? "-"}.${uid ?? "-"}`;
+
 export function RedTeam() {
-  const { design, update } = useSession();
+  const { design, update, sessionId, uid } = useSession();
   const [wallOpen, setWallOpen] = useState(false);
 
   const findings = design.redTeamFindings ?? [];
-  const [answers, setAnswers] = useState<Record<string, boolean | undefined>>(() =>
+  const [answers, setAnswers] = useState<Answers>(() =>
     Object.fromEntries(RED_TEAM_CHECKS.map((c) => [c.id, findings.includes(c.id) ? true : undefined])),
   );
+  // 항상 최신 응답을 가리키는 참조 — 같은 틱에 두 번 눌러도 앞의 답이 덮이지 않는다
+  const answersRef = useRef<Answers>(answers);
+
+  // 새로고침 복구: '그렇다'뿐 아니라 '아니다'까지 되살린다
+  useEffect(() => {
+    const saved = safeJson<Answers | null>(localStorage.getItem(ANSWERS_KEY(sessionId, uid)), null);
+    if (!saved) return;
+    answersRef.current = saved;
+    setAnswers(saved);
+  }, [sessionId, uid]);
 
   const taskReady = isFilled(design.graspsG, 5) || isFilled(design.graspsP, 5);
 
@@ -60,10 +75,15 @@ export function RedTeam() {
   const answeredCount = Object.values(answers).filter((v) => v !== undefined).length;
   const holes = RED_TEAM_CHECKS.filter((c) => answers[c.id] === true);
   const allAnswered = answeredCount === RED_TEAM_CHECKS.length;
+  // 이미 적어 둔 글이 있으면 응답 복구 여부와 상관없이 입력칸을 계속 열어 둔다
+  const hasWritten = isFilled(design.redTeamComment, 2) || isFilled(design.performanceTaskAfter, 2);
+  const showEditor = answeredCount > 0 || hasWritten;
 
   const setAnswer = (id: string, value: boolean) => {
-    const next = { ...answers, [id]: value };
+    const next = { ...answersRef.current, [id]: value };
+    answersRef.current = next;
     setAnswers(next);
+    localStorage.setItem(ANSWERS_KEY(sessionId, uid), JSON.stringify(next));
     update({
       redTeamFindings: RED_TEAM_CHECKS.filter((c) => next[c.id] === true).map((c) => c.id),
     });
@@ -160,7 +180,7 @@ export function RedTeam() {
       )}
 
       {/* 공격 방법 서술 + 수정 */}
-      {answeredCount > 0 && (
+      {showEditor && (
         <div className="appear space-y-5">
           <div className="space-y-2">
             <Label htmlFor="redTeamComment">

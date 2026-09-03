@@ -27,17 +27,28 @@ export function RubricBuilder() {
   const keyIndex = Math.min(design.keyAssessmentIndex ?? 0, items.length - 1);
   const [showAll, setShowAll] = useState(false);
 
-  const setItems = (next: AssessmentElement[]) => update({ assessmentElements: next });
+  /** 이전 목록을 읽어 새 목록을 만드는 갱신은 전부 함수형으로 — 빠른 연속 클릭에도 유실되지 않는다 */
+  const withItems = (fn: (cur: AssessmentElement[]) => AssessmentElement[]) =>
+    update((prev) => ({
+      assessmentElements: fn(prev.assessmentElements?.length ? prev.assessmentElements : [{ ...EMPTY_ELEMENT }]),
+    }));
 
   const patch = (i: number, p: Partial<AssessmentElement>) =>
-    setItems(items.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
+    withItems((cur) => cur.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
 
-  const add = () => items.length < MAX && setItems([...items, { ...EMPTY_ELEMENT }]);
+  const add = () => withItems((cur) => (cur.length < MAX ? [...cur, { ...EMPTY_ELEMENT }] : cur));
 
   const remove = (i: number) => {
     if (items.length <= 1) return;
-    setItems(items.filter((_, idx) => idx !== i));
-    if (keyIndex >= items.length - 1) update({ keyAssessmentIndex: 0 });
+    update((prev) => {
+      const cur = prev.assessmentElements?.length ? prev.assessmentElements : [{ ...EMPTY_ELEMENT }];
+      const nextItems = cur.filter((_, idx) => idx !== i);
+      return {
+        assessmentElements: nextItems,
+        // 지워진 자리를 가리키고 있었다면 별표를 첫 요소로 되돌린다
+        keyAssessmentIndex: Math.min(prev.keyAssessmentIndex ?? 0, Math.max(0, nextItems.length - 1)),
+      };
+    });
   };
 
   const used = new Set(items.map((i) => i.name));
@@ -57,9 +68,12 @@ export function RubricBuilder() {
               title={e.desc}
               disabled={used.has(e.name)}
               onClick={() => {
-                const emptyIdx = items.findIndex((it) => !it.name.trim());
-                if (emptyIdx >= 0) patch(emptyIdx, { name: e.name });
-                else if (items.length < MAX) setItems([...items, { ...EMPTY_ELEMENT, name: e.name }]);
+                withItems((cur) => {
+                  if (cur.some((it) => it.name === e.name)) return cur;
+                  const emptyIdx = cur.findIndex((it) => !it.name.trim());
+                  if (emptyIdx >= 0) return cur.map((it, i) => (i === emptyIdx ? { ...it, name: e.name } : it));
+                  return cur.length < MAX ? [...cur, { ...EMPTY_ELEMENT, name: e.name }] : cur;
+                });
               }}
               className={cn(
                 "rounded-pill border px-3.5 py-1.5 text-caption transition-transform active:scale-95",
@@ -102,7 +116,7 @@ export function RubricBuilder() {
                 onClick={() => update({ keyAssessmentIndex: i })}
                 aria-label="가장 중요한 평가요소로 지정"
                 title="가장 중요한 평가요소로 지정"
-                className="rounded-md p-1 transition-transform active:scale-90"
+                className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1 transition-transform active:scale-90"
               >
                 <Star
                   className={cn("h-4 w-4", isKey ? "fill-action text-action" : "text-ink-48 hover:text-action")}
@@ -122,7 +136,7 @@ export function RubricBuilder() {
                   type="button"
                   onClick={() => remove(i)}
                   aria-label="이 평가요소 삭제"
-                  className="rounded-md p-1.5 text-ink-48 transition-transform active:scale-95 hover:text-bad"
+                  className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1.5 text-ink-48 transition-transform active:scale-95 hover:text-bad"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

@@ -27,12 +27,15 @@ export function DeleteChallenge() {
   const target = Math.max(2, Math.round(items.length * 0.3));
   const reached = items.length >= 3 && dropped.length >= target;
 
-  const setItems = (next: UnitItem[]) => update({ unitItems: next });
+  /** 이전 목록 기준으로 계산 — 같은 틱에 여러 번 눌러도 앞의 변경이 살아남는다 */
+  const withItems = (fn: (cur: UnitItem[]) => UnitItem[]) =>
+    update((prev) => ({ unitItems: fn(prev.unitItems ?? []) }));
 
   const add = () => {
     const text = draft.trim();
     if (!text) return;
-    setItems([...items, { id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, text, dropped: false }]);
+    const id = `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    withItems((cur) => [...cur, { id, text, dropped: false }]);
     setDraft("");
   };
 
@@ -44,9 +47,9 @@ export function DeleteChallenge() {
   };
 
   const move = (id: string, dropped: boolean) =>
-    setItems(items.map((i) => (i.id === id ? { ...i, dropped } : i)));
+    withItems((cur) => cur.map((i) => (i.id === id ? { ...i, dropped } : i)));
 
-  const remove = (id: string) => setItems(items.filter((i) => i.id !== id));
+  const remove = (id: string) => withItems((cur) => cur.filter((i) => i.id !== id));
 
   return (
     <div className="space-y-7">
@@ -236,7 +239,7 @@ function ItemRow({
         onClick={onAction}
         title={actionLabel}
         aria-label={actionLabel}
-        className="inline-flex items-center gap-1 rounded-pill border border-hairline px-2.5 py-1 text-fine text-ink-80 transition-transform active:scale-95 hover:border-action hover:text-action"
+        className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 gap-1 rounded-pill border border-hairline px-3 py-1 text-fine text-ink-80 transition-transform active:scale-95 hover:border-action hover:text-action sm:px-2.5"
       >
         {icon === "left" && <ArrowLeft className="h-3 w-3" />}
         <span className="hidden sm:inline">{actionLabel}</span>
@@ -246,7 +249,7 @@ function ItemRow({
         type="button"
         onClick={onRemove}
         aria-label="항목 삭제"
-        className="rounded-md p-1 text-ink-48 transition-transform active:scale-95 hover:text-bad"
+        className="inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1 text-ink-48 transition-transform active:scale-95 hover:text-bad"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

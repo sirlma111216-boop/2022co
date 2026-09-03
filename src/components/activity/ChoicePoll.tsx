@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Bars } from "@/components/poll/Poll";
 import { Label, Textarea } from "@/components/ui/input";
 import { useSession } from "@/lib/session-context";
@@ -50,12 +50,6 @@ export function ChoicePoll({
   const { votes, castVote, session, design, update, mode } = useSession();
   const chosen = votes[pollId] ?? ((design[choiceField] as string) || "");
   const results = session?.pollResults ?? {};
-  const synced = useRef(false);
-
-  // 새로고침 후 설계안에는 선택이 남아 있는데 votes 에 없을 수 있다 — 화면 상태를 맞춘다.
-  useEffect(() => {
-    synced.current = true;
-  }, []);
 
   const pick = (key: string) => {
     if (chosen) return;

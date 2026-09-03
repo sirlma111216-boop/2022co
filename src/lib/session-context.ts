@@ -28,7 +28,13 @@ export interface SessionState {
   joined: boolean;
   join: (code: string, profile: JoinProfile) => Promise<void>;
   leave: () => void;
-  update: (patch: Partial<DesignDoc>) => void;
+  /**
+   * 설계안 갱신.
+   * 배열처럼 「이전 값을 읽어 새 값을 만드는」 갱신은 반드시 함수형으로 넘긴다.
+   * 객체를 넘기면 렌더 시점의 값을 기준으로 계산하게 되어, 같은 틱에 두 번 갱신하면
+   * 앞의 변경이 덮여 사라진다(칩을 빠르게 두 번 누르면 하나만 들어가던 문제).
+   */
+  update: (patch: Partial<DesignDoc> | ((prev: DesignDoc) => Partial<DesignDoc>)) => void;
   markProgress: (activityId: ActivityId) => void;
   setStep: (step: StepId) => void;
   setPresentMode: (on: boolean) => void;

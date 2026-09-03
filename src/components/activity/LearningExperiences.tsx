@@ -23,11 +23,14 @@ export function LearningExperiences() {
     ...(design.standardCoreAction.trim() ? [`성취기준 핵심 행동 · ${design.standardCoreAction.trim()}`] : []),
   ];
 
-  const setItems = (next: LearningExperience[]) => update({ learningExperiences: next });
+  /** 이전 목록 기준으로 계산 — 연속 클릭에도 유실되지 않는다 */
+  const withItems = (fn: (cur: LearningExperience[]) => LearningExperience[]) =>
+    update((prev) => ({ learningExperiences: fn(prev.learningExperiences ?? []) }));
+
   const patch = (i: number, p: Partial<LearningExperience>) =>
-    setItems(items.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
-  const add = () => items.length < MAX && setItems([...items, { what: "", evidence: "" }]);
-  const remove = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+    withItems((cur) => cur.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
+  const add = () => withItems((cur) => (cur.length < MAX ? [...cur, { what: "", evidence: "" }] : cur));
+  const remove = (i: number) => withItems((cur) => cur.filter((_, idx) => idx !== i));
 
   return (
     <div className="space-y-4">
@@ -45,7 +48,7 @@ export function LearningExperiences() {
               type="button"
               onClick={() => remove(i)}
               aria-label="이 학습 경험 삭제"
-              className="ml-auto rounded-md p-1.5 text-ink-48 transition-transform active:scale-95 hover:text-bad"
+              className="ml-auto inline-flex min-h-9 min-w-9 items-center justify-center sm:min-h-0 sm:min-w-0 rounded-md p-1.5 text-ink-48 transition-transform active:scale-95 hover:text-bad"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>

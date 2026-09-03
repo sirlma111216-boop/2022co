@@ -17,18 +17,18 @@ export function DiscussionTimer({ seconds = 60, label = "옆 선생님과 이야
   useEffect(() => {
     if (!running) return;
     tick.current = setInterval(() => {
-      setLeft((v) => {
-        if (v <= 1) {
-          setRunning(false);
-          return 0;
-        }
-        return v - 1;
-      });
+      setLeft((v) => Math.max(0, v - 1));
     }, 1000);
     return () => {
       if (tick.current) clearInterval(tick.current);
     };
   }, [running]);
+
+  // 0에 닿으면 멈춘다. setLeft 업데이터 안에서 setRunning 을 부르면
+  // StrictMode 이중 호출에서 예측하기 어려워지므로 효과로 분리한다.
+  useEffect(() => {
+    if (left === 0) setRunning(false);
+  }, [left]);
 
   if (!presentMode) return null;
 

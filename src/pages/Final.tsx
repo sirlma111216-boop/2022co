@@ -152,7 +152,7 @@ export default function Final() {
       {/* 종이 미리보기 — 파치먼트 면 위에 흰 종이를 올린다 */}
       <section className="bg-canvas-parchment py-10 print:bg-white print:py-0">
         <div className="mx-auto w-full max-w-[calc(210mm+40px)] overflow-x-auto px-5 print:max-w-none print:overflow-visible print:px-0">
-          <div className="origin-top scale-[0.62] sm:scale-[0.8] lg:scale-100 print:scale-100">
+          <div className="origin-top-left scale-[0.42] sm:origin-top sm:scale-[0.8] lg:scale-100 print:scale-100">
             <DesignSheet />
           </div>
         </div>

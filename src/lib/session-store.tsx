@@ -114,15 +114,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [sessionId, uid]);
 
   const update = useCallback(
-    (patch: Partial<DesignDoc>) => {
+    (patchOrFn: Partial<DesignDoc> | ((prev: DesignDoc) => Partial<DesignDoc>)) => {
       setDesign((prev) => {
+        // 함수형 갱신은 항상 '최신' prev 를 받는다 → 같은 틱에 두 번 눌러도 앞의 변경이 살아남는다.
+        const patch = typeof patchOrFn === "function" ? patchOrFn(prev) : patchOrFn;
         const next = { ...prev, ...patch, updatedAt: Date.now() };
         if (sessionId && uid) {
           localStorage.setItem(DESIGN_MIRROR(sessionId, uid), JSON.stringify(next));
         }
+        // 같은 patch 로 두 번 병합해도 결과가 같으므로 StrictMode 이중 호출에도 안전하다.
+        pending.current = { ...pending.current, ...patch };
         return next;
       });
-      pending.current = { ...pending.current, ...patch };
       setSaveState("saving");
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => void flush(), 700);
