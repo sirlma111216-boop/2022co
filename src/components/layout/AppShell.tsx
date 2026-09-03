@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Check, Cloud, CloudOff, Loader2, Monitor, Presentation } from "lucide-react";
+import { Check, Cloud, CloudOff, ExternalLink, Loader2, Monitor, Presentation } from "lucide-react";
 import { useSession } from "@/lib/session-context";
 import { STEPS, type StepId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,10 @@ function GlobalNav() {
   return (
     <div className="sticky top-0 z-40 h-11 bg-black text-white no-print">
       <div className="mx-auto flex h-full max-w-wide items-center gap-4 px-4 sm:px-6">
-        <Link to="/" className="text-fine font-semibold tracking-[-0.01em] text-white">
+        <Link
+          to="/"
+          className="shrink-0 whitespace-nowrap text-fine font-semibold tracking-[-0.01em] text-white"
+        >
           거꾸로 설계 연수실
         </Link>
         <span className="hidden text-fine text-white/45 sm:inline">
@@ -62,7 +65,23 @@ function GlobalNav() {
             <span className="hidden sm:inline">강사</span>
           </Link>
 
-          {profile && <span className="text-fine text-white/70">{profile.nickname}</span>}
+          {/* 닉네임은 좁은 화면에서 자리를 많이 먹는다 — 상단 바가 두 줄로 깨지지 않게 숨긴다 */}
+          {profile && <span className="hidden text-fine text-white/70 sm:inline">{profile.nickname}</span>}
+
+          {/* 래비토리 본사이트로 나가는 링크 — 새 탭으로 열어 작성 중인 설계안을 잃지 않게 한다 */}
+          <a
+            href="https://labbitory.com/lecture-teacher"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="래비토리 교사 연수 페이지 (새 탭에서 열림)"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-white/20 bg-white/10 px-2.5 py-1 text-fine font-semibold text-white transition-transform hover:bg-white/20 active:scale-95"
+          >
+            {/* 워드마크는 한 덩어리로 둔다 — flex gap 이 글자 사이를 벌리지 않게 */}
+            <span className="whitespace-nowrap">
+              labbitory<span className="text-[#ff8a6b]">.com</span>
+            </span>
+            <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
+          </a>
         </div>
       </div>
     </div>
