@@ -163,12 +163,13 @@ export async function requestAiReview(
     }
     const parsed = json as Partial<AiResponse> & { message?: string };
     if (parsed && parsed.ok === true) {
-      const r = parsed as { good?: string[]; think?: string[]; suggestion?: string; raw?: string };
+      const r = parsed as { good?: string[]; think?: string[]; suggestion?: string; ask?: string; raw?: string };
       return {
         ok: true,
         good: r.good ?? [],
         think: r.think ?? [],
         suggestion: r.suggestion ?? "",
+        ask: r.ask ?? "",
         raw: r.raw ?? "",
       };
     }

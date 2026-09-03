@@ -13,12 +13,22 @@ export default function Final() {
 
   const checks = [
     { label: "성취기준", ok: isFilled(d.achievementStandard, 8), to: "/s1#a1" },
-    { label: "세 차원 분석", ok: isFilled(d.knowledgeUnderstanding) || isFilled(d.processSkill), to: "/s1#a1" },
+    { label: "핵심 행동", ok: isFilled(d.standardCoreAction, 2), to: "/s1#a1" },
+    { label: "30% 삭제", ok: isFilled(d.commonThread, 4), to: "/s2#m1" },
     { label: "남길 한 문장", ok: isFilled(d.enduringUnderstanding, 8), to: "/s2#a2" },
-    { label: "탐구질문", ok: isFilled(d.inquiryConcept, 5) || isFilled(d.inquiryDebate, 5), to: "/s2#a3" },
+    { label: "핵심 탐구질문", ok: isFilled(d.keyInquiry, 5), to: "/s2#a3" },
     { label: "수행과제", ok: isFilled(d.graspsG, 5) && isFilled(d.graspsP, 3), to: "/s3#a4" },
+    {
+      label: "RED TEAM",
+      ok: (d.redTeamFindings?.length ?? 0) > 0 || isFilled(d.performanceTaskAfter, 10),
+      to: "/s3#r1",
+    },
     { label: "평가요소", ok: d.assessmentElements.some((e) => isFilled(e.name, 2)), to: "/s3#a5" },
-    { label: "학습 경험", ok: isFilled(d.learningActivities, 8), to: "/s3#a6" },
+    {
+      label: "학습 경험",
+      ok: (d.learningExperiences ?? []).some((e) => isFilled(e.what, 4)) || isFilled(d.learningActivities, 8),
+      to: "/s3#a6",
+    },
     { label: "피드백 3문장", ok: isFilled(d.feedUp, 3) && isFilled(d.feedBack, 3) && isFilled(d.feedForward, 3), to: "/s3#s3-feedback" },
   ];
   const doneCount = checks.filter((c) => c.ok).length;
@@ -33,12 +43,14 @@ export default function Final() {
       `지식·이해: ${d.knowledgeUnderstanding}`,
       `과정·기능: ${d.processSkill}`,
       `가치·태도: ${d.valueAttitude}`,
+      `핵심 행동: ${d.standardCoreAction}`,
       "",
       "2. 학생에게 무엇을 남길 것인가",
       `핵심 아이디어: ${d.keyIdea}`,
       `영속적 이해: ${d.enduringUnderstanding}`,
       "",
       "3. 어떤 질문으로 생각하게 할 것인가",
+      `핵심 탐구질문: ${d.keyInquiry}`,
       `확인 질문: ${d.inquiryFact}`,
       `연결 질문: ${d.inquiryConcept}`,
       `확장·논쟁 질문: ${d.inquiryDebate}`,
@@ -47,11 +59,15 @@ export default function Final() {
       `수행과제(G): ${d.graspsG}`,
       `(R) ${d.graspsR} / (A) ${d.graspsA} / (S) ${d.graspsS}`,
       `(P) ${d.graspsP} / (S) ${d.graspsS2}`,
+      ...(d.performanceTaskAfter.trim() ? [`RED TEAM 수정 후: ${d.performanceTaskAfter}`] : []),
       ...d.assessmentElements
         .filter((e) => e.name.trim())
         .map((e) => `평가요소 - ${e.name} | 상: ${e.high} | 중: ${e.mid} | 하: ${e.low}`),
       "",
       "5. 어떤 학습 경험을 제공할 것인가",
+      ...(d.learningExperiences ?? [])
+        .filter((e) => e.what.trim())
+        .map((e) => `- ${e.what}${e.evidence.trim() ? ` → ${e.evidence.trim()}` : ""}`),
       d.learningActivities,
       "",
       "6. 어떻게 성장하도록 도울 것인가",
@@ -145,16 +161,16 @@ export default function Final() {
       <section className="bg-canvas py-14 no-print">
         <div className="content-w">
           <div className="rounded-lg border border-hairline bg-canvas px-6 py-7">
-            <h2 className="text-tagline">아직 끝이 아닙니다</h2>
+            <h2 className="text-tagline">아직 끝이 아닙니다 · FINAL MISSION</h2>
             <p className="mt-2 max-w-reading text-body-sm leading-[1.7] text-ink-80">
-              설계안을 만들었다고 수업이 바뀌지는 않습니다. 오늘 만든 것을 학교에서 어떻게 다시 손볼지까지
-              생각해 두어야 실제로 쓰입니다. 마지막 3분, 짧게 되돌아봅니다.
+              설계안을 만들었다고 수업이 바뀌지는 않습니다. 마지막으로, 150분 전에 적으셨던 「가장 공들였던
+              활동」을 다시 꺼내 지금의 설계와 나란히 놓고 직접 결정해 보세요.
             </p>
             <Link
               to="/reflect"
               className="mt-5 inline-flex items-center gap-2 rounded-pill bg-action px-6 py-3 text-body-sm text-white transition-transform active:scale-[0.97]"
             >
-              수업을 다시 앞에서 바라보다 →
+              처음의 내 수업과 다시 만나기 →
             </Link>
           </div>
         </div>

@@ -22,7 +22,7 @@ import {
 } from "@/lib/types";
 import { cn, makeCode, normalizeCode, relativeTime } from "@/lib/utils";
 
-const ACTIVITIES: ActivityId[] = ["a1", "a2", "a3", "a4", "a5", "a6"];
+const ACTIVITIES: ActivityId[] = ["a1", "m1", "a2", "a3", "a4", "r1", "a5", "a6"];
 
 export default function Presenter() {
   const { setPresentMode, presentMode } = useSession();

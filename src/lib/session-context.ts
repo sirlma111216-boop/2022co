@@ -37,6 +37,13 @@ export interface SessionState {
   castPoll: (key: PollKey) => Promise<void>;
   votedTask: TaskPollKey | null;
   castTaskPoll: (key: TaskPollKey) => Promise<void>;
+
+  /**
+   * 새로 추가된 선택형 활동들(수업 부검실, 좋은 질문 판별 …)의 내 선택.
+   * pollId → 고른 보기. 한 번 고르면 바뀌지 않는다.
+   */
+  votes: Record<string, string>;
+  castVote: (pollId: string, option: string) => Promise<void>;
 }
 
 export const SessionContext = createContext<SessionState>({
@@ -60,6 +67,8 @@ export const SessionContext = createContext<SessionState>({
   castPoll: async () => {},
   votedTask: null,
   castTaskPoll: async () => {},
+  votes: {},
+  castVote: async () => {},
 });
 
 export function useSession() {

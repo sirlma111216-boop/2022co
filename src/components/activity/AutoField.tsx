@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { ProgressiveHelp } from "./ProgressiveHelp";
 import { useSession } from "@/lib/session-context";
 import type { DesignField } from "@/lib/types";
 import { cn, countChars } from "@/lib/utils";
@@ -17,6 +18,8 @@ export function AutoField({
   rows = 3,
   single = false,
   recommend,
+  hint1,
+  hint2,
   example,
   className,
 }: {
@@ -28,6 +31,11 @@ export function AutoField({
   single?: boolean;
   /** 권장 글자 수 (넘어가면 부드럽게 안내만 한다 — 막지 않는다) */
   recommend?: number;
+  /** 1차 힌트 — [조금 막혔어요] 를 눌렀을 때만 열린다 */
+  hint1?: string;
+  /** 2차 힌트 */
+  hint2?: string;
+  /** 실제 예시 — [예시 보기] 를 눌렀을 때만 열린다 */
   example?: string;
   className?: string;
 }) {
@@ -82,17 +90,7 @@ export function AutoField({
         />
       )}
 
-      {example && (
-        <details className="group">
-          <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-caption text-action">
-            예시 보기
-            <span className="transition-transform group-open:rotate-90">›</span>
-          </summary>
-          <p className="mt-2 rounded-md bg-canvas-parchment px-4 py-3 text-caption leading-[1.65] text-ink-80">
-            {example}
-          </p>
-        </details>
-      )}
+      <ProgressiveHelp hint1={hint1} hint2={hint2} example={example} />
     </div>
   );
 }

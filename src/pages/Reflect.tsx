@@ -1,51 +1,78 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { Disclosure } from "@/components/ui/disclosure";
 import { SectionHeading } from "@/components/teach/elements";
 import { Block } from "@/components/teach/Block";
+import { BeforeAfter } from "@/components/activity/RedTeam";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session-context";
 import type { Reflection } from "@/lib/types";
-import { cn, relativeTime, safeJson, wordFrequency } from "@/lib/utils";
+import { cn, objectParticle, relativeTime, safeJson } from "@/lib/utils";
 
-const DRAFT = (sid: string) => `bl.reflect.draft.${sid}`;
+const DRAFT = (sid: string) => `bl.reflect.draft.v2.${sid}`;
 
-const QUESTIONS = [
-  {
-    key: "newLearning" as const,
-    label: "1. 오늘 가장 새롭게 이해한 것은 무엇인가요?",
-    placeholder: "예: 성취기준을 도착점으로 읽는다는 말의 의미를 처음으로 알 것 같습니다.",
-  },
-  {
-    key: "changeToTry" as const,
-    label: "2. 내가 평소 수업을 설계하던 방식에서 바꾸어보고 싶은 것은 무엇인가요?",
-    placeholder: "예: 활동부터 정하지 않고, 이번 단원에서 남길 한 문장을 먼저 적어 보겠습니다.",
-  },
-  {
-    key: "nextRevision" as const,
-    label: "3. 오늘 만든 설계안에서 학교로 돌아가 가장 먼저 수정하고 싶은 부분은 무엇인가요?",
-    placeholder: "예: 수행과제의 상황이 아직 막연합니다. 실제 자료를 찾아 붙이겠습니다.",
-  },
+interface DraftForm {
+  newLearning: string;
+  changeToTry: string;
+  nextRevision: string;
+  oneSentence: string;
+  stopDoing: string;
+  startDoing: string;
+  sentA: string;
+  sentB: string;
+}
+
+const EMPTY_FORM: DraftForm = {
+  newLearning: "",
+  changeToTry: "",
+  nextRevision: "",
+  oneSentence: "",
+  stopDoing: "",
+  startDoing: "",
+  sentA: "",
+  sentB: "",
+};
+
+const DECISIONS = [
+  { key: "keep", label: "그대로 유지한다", note: "지금도 이 활동이 목적에 맞다" },
+  { key: "repurpose", label: "목적을 바꾸어 사용한다", note: "활동은 두되 무엇을 볼지 바꾼다" },
+  { key: "revise", label: "많이 수정한다", note: "형태를 상당히 손봐야 한다" },
+  { key: "drop", label: "과감히 뺀다", note: "이번 단원에서는 덜 다룬다" },
+];
+
+const OLD_QUESTIONS = [
+  { key: "newLearning" as const, label: "오늘 가장 새롭게 이해한 것은 무엇인가요?" },
+  { key: "changeToTry" as const, label: "평소 수업을 설계하던 방식에서 바꾸어보고 싶은 것은 무엇인가요?" },
+  { key: "nextRevision" as const, label: "오늘 만든 설계안에서 가장 먼저 수정하고 싶은 부분은 무엇인가요?" },
 ];
 
 export default function Reflect() {
-  const { sessionId, uid, profile, mode } = useSession();
-  const [form, setForm] = useState({ newLearning: "", changeToTry: "", nextRevision: "", oneSentence: "" });
+  const { sessionId, uid, profile, mode, design, update } = useSession();
+  const [form, setForm] = useState<DraftForm>(EMPTY_FORM);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [freeEdit, setFreeEdit] = useState(false);
   const [all, setAll] = useState<Reflection[]>([]);
 
   useEffect(() => {
     if (!sessionId) return;
-    const draft = safeJson(localStorage.getItem(DRAFT(sessionId)), null as typeof form | null);
-    if (draft) setForm(draft);
+    const draft = safeJson<DraftForm | null>(localStorage.getItem(DRAFT(sessionId)), null);
+    if (draft) setForm({ ...EMPTY_FORM, ...draft });
     return repo.watchReflections(sessionId, setAll);
   }, [sessionId]);
 
-  const set = (k: keyof typeof form, v: string) => {
-    const next = { ...form, [k]: v };
+  const set = (patch: Partial<DraftForm>) => {
+    const next = { ...form, ...patch };
+    // 문장 틀을 쓰는 동안에는 조각에서 한 문장을 자동으로 만든다.
+    if (!freeEdit && ("sentA" in patch || "sentB" in patch)) {
+      next.oneSentence =
+        next.sentA || next.sentB
+          ? `오늘 나는 수업 설계에서 ${next.sentA || "○○"}보다 ${next.sentB || "○○"}${objectParticle(next.sentB || "○○")} 먼저 생각해 보려고 한다.`
+          : "";
+    }
     setForm(next);
     setSaved(false);
     if (sessionId) localStorage.setItem(DRAFT(sessionId), JSON.stringify(next));
@@ -55,111 +82,285 @@ export default function Reflect() {
     if (!sessionId || !uid) return;
     setBusy(true);
     await repo
-      .saveReflection(sessionId, uid, { ...form, nickname: profile?.nickname ?? "익명" })
+      .saveReflection(sessionId, uid, {
+        nickname: profile?.nickname ?? "익명",
+        newLearning: form.newLearning,
+        changeToTry: form.changeToTry,
+        nextRevision: form.nextRevision,
+        oneSentence: form.oneSentence,
+        stopDoing: form.stopDoing,
+        startDoing: form.startDoing,
+      })
       .catch(() => {});
     setBusy(false);
     setSaved(true);
   };
 
-  const sentences = useMemo(
-    () => all.map((r) => r.oneSentence).filter((s) => s && s.trim().length > 1),
-    [all],
-  );
-  const cloud = useMemo(() => wordFrequency(sentences, 36), [sentences]);
-  const maxCount = Math.max(1, ...cloud.map((c) => c.count));
+  const stops = useMemo(() => all.filter((r) => r.stopDoing?.trim()), [all]);
+  const starts = useMemo(() => all.filter((r) => r.startDoing?.trim()), [all]);
+  const sentences = useMemo(() => all.filter((r) => r.oneSentence?.trim()), [all]);
+  const keyElement = design.assessmentElements[design.keyAssessmentIndex ?? 0];
+  const experiences = (design.learningExperiences ?? []).filter((e) => e.what.trim());
 
   return (
     <>
+      {/* ── 히어로 ─────────────────────────────────────────── */}
       <section className="bg-tile-1 py-14 text-white sm:py-[72px]">
         <div className="reading">
-          <p className="text-fine font-semibold uppercase tracking-[0.14em] text-white/55">마지막 성찰</p>
+          <p className="text-fine font-semibold uppercase tracking-[0.14em] text-white/55">FINAL MISSION</p>
           <h1 className="mt-3 text-[2.25rem] leading-[1.14] tracking-[-0.022em] text-white sm:text-[3rem]">
-            수업을 다시 앞에서 바라보다
+            처음의 내 수업과 다시 만나기
           </h1>
           <p className="mt-5 max-w-reading text-lead-airy text-white/80">
-            설계안 한 장을 만들었습니다. 이제 오늘 무엇이 달라졌는지, 학교에 돌아가 무엇을 먼저 바꿀지
-            짧게 적어 봅니다.
+            150분 전에 적으셨던 그 활동을 다시 꺼냅니다. 지금의 설계 옆에 나란히 놓고, 그 활동을 어떻게 할지
+            직접 결정해 보세요.
           </p>
         </div>
       </section>
 
+      {/* ── 그때의 나 vs 지금의 나 ─────────────────────────── */}
+      <section className="bg-canvas py-14 sm:py-[72px]">
+        <div className="content-w">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="rounded-lg border border-hairline bg-canvas-parchment px-6 py-6">
+              <p className="text-fine font-semibold uppercase tracking-[0.08em] text-ink-48">
+                연수 시작 때의 나
+              </p>
+              <dl className="mt-4 space-y-4">
+                <Row label="내가 선택한 단원" value={design.unitName} />
+                <Row label="가장 공들였던 활동" value={design.initialActivity} strong />
+                <Row label="그 활동을 중요하게 생각한 이유" value={design.initialActivityReason} />
+              </dl>
+            </div>
+
+            <div className="rounded-lg border border-action/40 bg-canvas px-6 py-6">
+              <p className="text-fine font-semibold uppercase tracking-[0.08em] text-action">지금의 나</p>
+              <dl className="mt-4 space-y-4">
+                <Row label="남길 이해" value={design.enduringUnderstanding} strong />
+                <Row
+                  label="평가 증거 · 수행과제"
+                  value={design.performanceTaskAfter?.trim() || design.graspsP || design.graspsG}
+                />
+                <Row label="가장 중요한 평가요소" value={keyElement?.name ?? ""} />
+                <Row
+                  label="필요한 학습 경험"
+                  value={experiences.map((e) => e.what).join(" / ") || design.learningActivities}
+                />
+              </dl>
+            </div>
+          </div>
+
+          {/* RED TEAM 수정 전 → 수정 후 */}
+          {(design.performanceTaskBefore?.trim() || design.performanceTaskAfter?.trim()) && (
+            <div className="mt-8">
+              <p className="mb-3 text-caption font-semibold text-ink-48">
+                RED TEAM 이후 · 내 과제는 이렇게 달라졌습니다
+              </p>
+              <BeforeAfter compact />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── 질문 1 ─────────────────────────────────────────── */}
+      <section className="bg-canvas-parchment py-14 sm:py-[72px]">
+        <div className="reading">
+          <SectionHeading eyebrow="질문 1" title="그 활동, 지금도 그대로 유지하고 싶습니까?" />
+          {design.initialActivity?.trim() && (
+            <p className="mt-4 rounded-md border border-hairline bg-canvas px-4 py-3 text-body-sm text-ink">
+              내가 적었던 활동 · <strong className="font-semibold">{design.initialActivity}</strong>
+            </p>
+          )}
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {DECISIONS.map((d) => {
+              const on = design.finalActivityDecision === d.key;
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => update({ finalActivityDecision: d.key })}
+                  className={cn(
+                    "rounded-lg border px-5 py-4 text-left transition-transform active:scale-[0.98]",
+                    on ? "border-action bg-action/[0.06]" : "border-hairline bg-canvas hover:border-ink-48/40",
+                  )}
+                >
+                  <span className="block text-body-sm font-semibold text-ink">{d.label}</span>
+                  <span className="mt-1 block text-fine text-ink-48">{d.note}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {design.finalActivityDecision && (
+            <div className="appear mt-6 space-y-2">
+              <Label htmlFor="decisionReason">왜 그렇게 결정하셨나요?</Label>
+              <Textarea
+                id="decisionReason"
+                rows={2}
+                value={design.finalActivityDecisionReason}
+                placeholder="한 줄이면 충분합니다."
+                onChange={(e) => update({ finalActivityDecisionReason: e.target.value })}
+              />
+            </div>
+          )}
+
+          <Block kind="teacher">
+            <p>
+              좋은 활동을 버리자는 것이 아닙니다. 무엇을 남길지 먼저 정하고, 그것을 증명할 수 있을 때
+              좋은 활동은 더 좋은 수업이 됩니다.
+            </p>
+          </Block>
+        </div>
+      </section>
+
+      {/* ── 질문 2·3 STOP / START ──────────────────────────── */}
       <section className="bg-canvas py-14 sm:py-[72px]">
         <div className="reading">
-          <div className="space-y-6">
-            {QUESTIONS.map((q) => (
-              <div key={q.key} className="space-y-2">
-                <Label htmlFor={q.key}>{q.label}</Label>
-                <Textarea
-                  id={q.key}
-                  rows={3}
-                  value={form[q.key]}
-                  placeholder={q.placeholder}
-                  onChange={(e) => set(q.key, e.target.value)}
-                />
-              </div>
-            ))}
+          <SectionHeading eyebrow="질문 2 · 3" title="앞으로 무엇을 덜 하고, 무엇을 먼저 하시겠습니까?" />
 
-            <div className="space-y-2 rounded-lg border border-action/35 bg-canvas px-5 py-5">
-              <Label htmlFor="one">오늘의 연수를 한 문장으로 남긴다면?</Label>
-              <p className="text-caption text-ink-48">
-                이 문장만 익명으로 함께 보여집니다. 나머지 답변은 공유되지 않습니다.
-              </p>
-              <Input
-                id="one"
-                value={form.oneSentence}
-                onChange={(e) => set("oneSentence", e.target.value)}
-                placeholder="예: 활동보다 먼저 정해야 할 것이 있다는 걸 배웠습니다."
-                maxLength={80}
+          <div className="mt-7 grid gap-5 sm:grid-cols-2">
+            <div className="rounded-lg border-l-[3px] border-bad bg-canvas px-5 py-5">
+              <p className="text-fine font-semibold uppercase tracking-[0.1em] text-bad">STOP</p>
+              <Label htmlFor="stopDoing" className="mt-2 block">
+                앞으로 덜 하고 싶은 것
+              </Label>
+              <Textarea
+                id="stopDoing"
+                className="mt-2"
+                rows={3}
+                value={form.stopDoing}
+                placeholder="예: 재미있는 활동부터 찾기"
+                onChange={(e) => set({ stopDoing: e.target.value })}
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={submit} disabled={busy}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
-                {saved ? "제출했습니다" : "성찰 제출하기"}
-              </Button>
-              <span className="text-fine text-ink-48">
-                {mode === "local"
-                  ? "로컬 모드에서는 내 성찰만 표시됩니다."
-                  : "제출하면 마지막 문장이 익명으로 함께 표시됩니다."}
-              </span>
+            <div className="rounded-lg border-l-[3px] border-action bg-canvas px-5 py-5">
+              <p className="text-fine font-semibold uppercase tracking-[0.1em] text-action">START</p>
+              <Label htmlFor="startDoing" className="mt-2 block">
+                대신 가장 먼저 해보고 싶은 것
+              </Label>
+              <Textarea
+                id="startDoing"
+                className="mt-2"
+                rows={3}
+                value={form.startDoing}
+                placeholder="예: 학생에게 남길 한 문장부터 적기"
+                onChange={(e) => set({ startDoing: e.target.value })}
+              />
             </div>
+          </div>
+
+          {/* ── 한 문장 ─────────────────────────────────────── */}
+          <div className="mt-8 rounded-lg border border-action/35 bg-canvas px-5 py-5">
+            <Label>오늘의 연수를 한 문장으로 남긴다면?</Label>
+            <p className="mt-1 text-caption text-ink-48">
+              이 문장만 익명으로 함께 보여집니다. 나머지 답변은 공유되지 않습니다.
+            </p>
+
+            {!freeEdit ? (
+              <>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-body-sm text-ink">
+                  <span>오늘 나는 수업 설계에서</span>
+                  <Input
+                    aria-label="덜 먼저 생각할 것"
+                    value={form.sentA}
+                    onChange={(e) => set({ sentA: e.target.value })}
+                    placeholder="활동"
+                    className="w-[150px] px-3 py-1.5 text-body-sm"
+                    maxLength={24}
+                  />
+                  <span>보다</span>
+                  <Input
+                    aria-label="먼저 생각할 것"
+                    value={form.sentB}
+                    onChange={(e) => set({ sentB: e.target.value })}
+                    placeholder="남길 한 문장"
+                    className="w-[150px] px-3 py-1.5 text-body-sm"
+                    maxLength={24}
+                  />
+                  <span>{objectParticle(form.sentB)} 먼저 생각해 보려고 한다.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFreeEdit(true)}
+                  className="mt-3 text-fine text-action underline underline-offset-2"
+                >
+                  문장을 직접 고쳐 쓰기
+                </button>
+              </>
+            ) : (
+              <Input
+                className="mt-4"
+                value={form.oneSentence}
+                onChange={(e) => set({ oneSentence: e.target.value })}
+                placeholder="오늘의 연수를 한 문장으로"
+                maxLength={90}
+              />
+            )}
+
+            {form.oneSentence && !freeEdit && (
+              <p className="mt-3 rounded-md bg-canvas-parchment px-4 py-3 text-body-sm text-ink">
+                {form.oneSentence}
+              </p>
+            )}
+          </div>
+
+          {/* 기존 성찰 3문항 — 보존하되 선택으로 */}
+          <Disclosure className="mt-6" tone="parchment" title="조금 더 돌아보기 (선택)">
+            <div className="space-y-5">
+              {OLD_QUESTIONS.map((q) => (
+                <div key={q.key} className="space-y-2">
+                  <Label htmlFor={q.key}>{q.label}</Label>
+                  <Textarea
+                    id={q.key}
+                    rows={2}
+                    value={form[q.key]}
+                    onChange={(e) => set({ [q.key]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+          </Disclosure>
+
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Button onClick={submit} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
+              {saved ? "제출했습니다" : "성찰 제출하기"}
+            </Button>
+            <span className="text-fine text-ink-48">
+              {mode === "local"
+                ? "로컬 모드에서는 내 성찰만 표시됩니다."
+                : "제출하면 STOP / START와 한 문장이 익명으로 함께 표시됩니다."}
+            </span>
           </div>
         </div>
       </section>
 
-      {/* 워드클라우드 + 익명 카드 */}
+      {/* ── 익명 담벼락 ─────────────────────────────────────── */}
       <section className="bg-canvas-parchment py-14 sm:py-[72px]">
         <div className="content-w">
-          <SectionHeading eyebrow="함께 보기" title="오늘 우리가 남긴 문장들" />
+          <SectionHeading eyebrow="함께 보기" title="우리가 바꾸기로 한 것들" />
 
-          {cloud.length === 0 ? (
-            <p className="mt-8 text-body-sm text-ink-48">아직 제출된 문장이 없습니다.</p>
-          ) : (
-            <>
-              <div className="mt-8 flex flex-wrap items-baseline justify-center gap-x-5 gap-y-2 rounded-lg border border-hairline bg-canvas px-6 py-10">
-                {cloud.map((w) => {
-                  // 제출이 1건뿐이면 모든 단어의 빈도가 같다 — 전부 최대 크기로 튀지 않게 낮춘다.
-                  const t = maxCount <= 1 ? 0.3 : w.count / maxCount;
-                  return (
-                    <span
-                      key={w.word}
-                      className={cn(
-                        "font-display leading-none tracking-[-0.02em]",
-                        t > 0.66 ? "text-action" : t > 0.33 ? "text-ink" : "text-ink-48",
-                      )}
-                      style={{ fontSize: `${0.95 + t * 2.2}rem`, fontWeight: t > 0.5 ? 600 : 400 }}
-                      title={`${w.count}회`}
-                    >
-                      {w.word}
-                    </span>
-                  );
-                })}
-              </div>
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
+            <WallColumn
+              tone="stop"
+              title="STOP · 앞으로 덜 할 것"
+              items={stops.map((r) => ({ id: r.uid, text: r.stopDoing, at: r.createdAt }))}
+            />
+            <WallColumn
+              tone="start"
+              title="START · 앞으로 먼저 할 것"
+              items={starts.map((r) => ({ id: r.uid, text: r.startDoing, at: r.createdAt }))}
+            />
+          </div>
 
-              <div className="mt-6 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-                {all
-                  .filter((r) => r.oneSentence?.trim())
+          {sentences.length > 0 && (
+            <div className="mt-10">
+              <p className="mb-4 text-caption font-semibold text-ink-48">오늘 우리가 남긴 문장들</p>
+              <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
+                {sentences
+                  .slice()
                   .sort((a, b) => b.createdAt - a.createdAt)
                   .map((r) => (
                     <blockquote
@@ -171,23 +372,32 @@ export default function Reflect() {
                     </blockquote>
                   ))}
               </div>
-            </>
+            </div>
           )}
+        </div>
+      </section>
+
+      {/* ── 마무리 ─────────────────────────────────────────── */}
+      <section className="bg-tile-1 py-14 text-white sm:py-[72px]">
+        <div className="reading text-center">
+          <p className="pull-quote mx-auto max-w-[32ch] text-white">
+            좋은 활동을 버리자는 것이 아닙니다. 무엇을 남길지 먼저 정하고, 그것을 증명할 수 있을 때 좋은
+            활동은 더 좋은 수업이 됩니다.
+          </p>
         </div>
       </section>
 
       <section className="bg-canvas py-14">
         <div className="reading">
           <Block kind="oneline">
-            오늘 하신 일은 성취기준에서 출발해 이해와 증거를 정하고, 그다음에 수업을 세운 것입니다.
             순서 하나를 바꾼 것뿐이지만, 그 순서가 수업을 바꿉니다.
           </Block>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/final"
-              className="inline-flex items-center gap-2 rounded-pill border border-hairline px-5 py-3 text-body-sm text-ink-80"
+              className="inline-flex items-center gap-2 rounded-pill bg-action px-5 py-3 text-body-sm text-white transition-transform active:scale-[0.97]"
             >
-              ← 설계안 다시 보기
+              A4 설계안 보기 <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/s1"
@@ -199,5 +409,69 @@ export default function Reflect() {
         </div>
       </section>
     </>
+  );
+}
+
+function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  const v = (value ?? "").trim();
+  return (
+    <div>
+      <dt className="text-fine font-semibold text-ink-48">{label}</dt>
+      <dd
+        className={cn(
+          "mt-1 whitespace-pre-line text-body-sm leading-[1.65]",
+          v ? (strong ? "font-semibold text-ink" : "text-ink") : "text-ink-48",
+        )}
+      >
+        {v || "아직 비어 있습니다."}
+      </dd>
+    </div>
+  );
+}
+
+function WallColumn({
+  tone,
+  title,
+  items,
+}: {
+  tone: "stop" | "start";
+  title: string;
+  items: { id: string; text: string; at: number }[];
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-canvas px-5 py-5",
+        tone === "stop" ? "border-bad/35" : "border-action/35",
+      )}
+    >
+      <p
+        className={cn(
+          "text-fine font-semibold uppercase tracking-[0.08em]",
+          tone === "stop" ? "text-bad" : "text-action",
+        )}
+      >
+        {title}
+      </p>
+      {items.length === 0 ? (
+        <p className="mt-4 text-caption text-ink-48">아직 올라온 문장이 없습니다.</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {items
+            .slice()
+            .sort((a, b) => b.at - a.at)
+            .slice(0, 30)
+            .map((it) => (
+              <li
+                key={it.id}
+                className="rounded-md border border-hairline bg-canvas-parchment px-4 py-3 text-body-sm leading-[1.6] text-ink"
+              >
+                {it.text}
+                <span className="ml-2 text-fine text-ink-48">익명</span>
+              </li>
+            ))}
+        </ul>
+      )}
+    </div>
   );
 }

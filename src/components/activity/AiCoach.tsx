@@ -104,6 +104,17 @@ export function AiCoach({
               )}
             </div>
           )}
+
+          {/* AI는 답으로 끝내지 않는다 — 마지막에 되묻는다 */}
+          {result.ask && (
+            <div className="border-t border-hairline bg-canvas-parchment px-5 py-4">
+              <p className="mb-2 text-caption font-semibold text-ink">🤔 다시 생각해 볼 질문</p>
+              <p className="text-body-sm leading-[1.7] text-ink">{result.ask}</p>
+              <p className="mt-2 text-fine text-ink-48">
+                이 질문에는 AI가 답하지 않습니다. 선생님이 답할 자리입니다.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

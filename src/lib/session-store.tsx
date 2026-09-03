@@ -16,6 +16,7 @@ const CACHE_KEY = "bl.cache.v1";
 const DESIGN_MIRROR = (sid: string, uid: string) => `bl.mirror.${sid}.${uid}`;
 const POLL_KEY = (sid: string) => `bl.voted.poll.${sid}`;
 const TASK_POLL_KEY = (sid: string) => `bl.voted.task.${sid}`;
+const VOTES_KEY = (sid: string) => `bl.votes.${sid}`;
 
 interface Cache {
   sessionId: string | null;
@@ -34,6 +35,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [presentMode, setPresentModeState] = useState(false);
   const [votedPoll, setVotedPoll] = useState<PollKey | null>(null);
   const [votedTask, setVotedTask] = useState<TaskPollKey | null>(null);
+  const [votes, setVotes] = useState<Record<string, string>>({});
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Partial<DesignDoc>>({});
@@ -75,6 +77,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
         setVotedPoll(localStorage.getItem(POLL_KEY(cache.sessionId)) as PollKey | null);
         setVotedTask(localStorage.getItem(TASK_POLL_KEY(cache.sessionId)) as TaskPollKey | null);
+        setVotes(safeJson<Record<string, string>>(localStorage.getItem(VOTES_KEY(cache.sessionId)), {}));
       } finally {
         if (alive) setReady(true);
       }
@@ -153,6 +156,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setDesign({ ...EMPTY_DESIGN, ...(remote ?? mirror ?? {}) });
     setVotedPoll(localStorage.getItem(POLL_KEY(sid)) as PollKey | null);
     setVotedTask(localStorage.getItem(TASK_POLL_KEY(sid)) as TaskPollKey | null);
+    setVotes(safeJson<Record<string, string>>(localStorage.getItem(VOTES_KEY(sid)), {}));
   }, []);
 
   const leave = useCallback(() => {
@@ -200,6 +204,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [sessionId, votedTask],
   );
 
+  /**
+   * 새 선택형 활동 공통 투표.
+   * 집계는 기존 pollResults map 안에 `${pollId}_${option}` 키로 쌓는다 —
+   * 이렇게 하면 Firestore 보안 규칙을 손대지 않고도 활동을 늘릴 수 있다.
+   */
+  const castVote = useCallback(
+    async (pollId: string, option: string) => {
+      if (!sessionId || votes[pollId]) return;
+      const next = { ...votes, [pollId]: option };
+      setVotes(next);
+      localStorage.setItem(VOTES_KEY(sessionId), JSON.stringify(next));
+      await repo.vote(sessionId, `${pollId}_${option}`).catch(() => {});
+    },
+    [sessionId, votes],
+  );
+
   const value = useMemo<SessionState>(
     () => ({
       ready,
@@ -222,6 +242,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       castPoll,
       votedTask,
       castTaskPoll,
+      votes,
+      castVote,
     }),
     [
       ready,
@@ -241,6 +263,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       castPoll,
       votedTask,
       castTaskPoll,
+      votes,
+      castVote,
     ],
   );
 

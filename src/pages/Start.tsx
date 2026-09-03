@@ -1,16 +1,21 @@
 import { Block, PullQuote } from "@/components/teach/Block";
 import { PresenterTip } from "@/components/teach/elements";
 import { Bars, ChoiceList } from "@/components/poll/Poll";
+import { ChoicePoll } from "@/components/activity/ChoicePoll";
+import { DiscussionTimer } from "@/components/activity/DiscussionTimer";
+import { AutoField } from "@/components/activity/AutoField";
+import { Disclosure } from "@/components/ui/disclosure";
 import { PageNav } from "@/components/layout/PageParts";
-import { ICEBREAK_OPTIONS } from "@/content/examples";
+import { AUTOPSY_CASES, ICEBREAK_OPTIONS } from "@/content/examples";
 import { useSession } from "@/lib/session-context";
-import type { PollKey } from "@/lib/types";
+import { POLL_AUTOPSY, type PollKey } from "@/lib/types";
 
 export default function Start() {
-  const { session, votedPoll, castPoll, mode } = useSession();
-  const results = session?.pollResults ?? { A: 0, B: 0, C: 0, D: 0 };
+  const { session, votedPoll, castPoll, mode, design, profile, votes } = useSession();
+  const results = session?.pollResults ?? {};
+  const chose = votes[POLL_AUTOPSY] || design.autopsyChoice;
 
-  const data = ICEBREAK_OPTIONS.map((o) => ({
+  const icebreakData = ICEBREAK_OPTIONS.map((o) => ({
     key: o.key,
     label: `${o.key}. ${o.label}`,
     value: results[o.key] ?? 0,
@@ -19,86 +24,156 @@ export default function Start() {
 
   return (
     <>
+      {/* ── START MISSION · 수업 부검실 ───────────────────────────── */}
       <section className="bg-canvas py-14 sm:py-[72px]">
         <div className="reading">
-          <p className="text-fine font-semibold uppercase tracking-[0.16em] text-action">START</p>
-          <h1 className="mt-3 text-[2.25rem] leading-[1.12] tracking-[-0.022em] sm:text-[3rem]">
-            나는 수업을 어디서부터 만들까?
-          </h1>
+          <p className="text-fine font-semibold uppercase tracking-[0.16em] text-action">START MISSION</p>
+          <h1 className="mt-3 text-[2.25rem] leading-[1.12] tracking-[-0.022em] sm:text-[3rem]">수업 부검실</h1>
           <p className="mt-5 text-lead-airy text-ink-80">
-            새로운 단원을 맡았습니다. 여러분은 가장 먼저 무엇을 하시나요?
-          </p>
-          <p className="mt-3 text-caption text-ink-48">
-            정답이 있는 질문이 아닙니다. 평소에 실제로 하시는 것을 고르시면 됩니다.
+            세 수업 모두 실제 학교에서 충분히 일어날 법합니다. 한 학기 동안 딱 하나만 먼저 고친다면
+            어느 수업을 선택하시겠습니까?
           </p>
 
-          <div className="mt-8">
-            <ChoiceList
-              options={ICEBREAK_OPTIONS}
-              selected={votedPoll as PollKey | null}
-              onSelect={(k) => void castPoll(k)}
-            />
-          </div>
+          <ChoicePoll
+            pollId={POLL_AUTOPSY}
+            question="가장 먼저 고쳐야 할 수업은 무엇이라고 생각하십니까?"
+            options={AUTOPSY_CASES}
+            choiceField="autopsyChoice"
+            reasonField="autopsyReason"
+            reasonPlaceholder="예: 활동은 좋은데 평가가 따로 놀아서요."
+            afterVote={
+              <>
+                <div className="rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
+                  <p className="text-body-sm leading-[1.7] text-ink">
+                    같은 수업을 보고도 판단은 갈릴 수 있습니다.
+                    <br />
+                    옆 선생님과 1분 동안 자신의 선택 이유를 비교해 보세요.
+                  </p>
+                </div>
+                <DiscussionTimer seconds={60} label="선택 이유 비교하기" />
+              </>
+            }
+          />
 
-          {votedPoll && (
-            <div className="appear mt-10 rounded-lg border border-hairline bg-canvas-parchment px-5 py-6 sm:px-7">
-              <p className="mb-5 text-caption font-semibold text-ink-48">
-                지금까지의 응답 {mode === "local" && "· 로컬 모드에서는 내 응답만 집계됩니다"}
-              </p>
-              <Bars data={data} />
-              <p className="mt-5 border-t border-hairline pt-4 text-fine text-ink-48">
-                개별 응답은 누구의 것인지 표시되지 않습니다.
-              </p>
-            </div>
-          )}
+          <PresenterTip>
+            <p>분포를 읽어 주되 어느 쪽이 정답인지 말하지 마세요. 갈린 것 자체가 오늘의 출발점입니다.</p>
+            <p>
+              소수 쪽을 먼저 지목해 "왜 그렇게 보셨어요?"라고 물으면 대화가 열립니다. B를 고른 분이 적다면
+              그 이유를 특히 들어 보세요.
+            </p>
+          </PresenterTip>
         </div>
       </section>
 
-      {votedPoll && (
+      {chose && (
         <>
+          {/* ── 교수자 설명 ─────────────────────────────────────── */}
           <section className="bg-tile-1 py-14 text-white sm:py-[72px]">
             <div className="reading text-center">
-              <p className="pull-quote mx-auto max-w-[24ch] text-white">
-                오늘 우리는 D에서 출발하여 C를 거쳐 A로 가보려고 합니다.
+              <p className="pull-quote mx-auto max-w-[30ch] text-white">
+                오늘 우리가 배우려는 것은 재미있는 수업과 재미없는 수업을 가르는 방법이 아닙니다.
               </p>
-              <div className="mx-auto mt-8 flex max-w-[520px] items-center justify-between gap-2 text-caption text-white/70">
-                <span className="rounded-pill bg-white/10 px-3 py-2">D 남길 이해</span>
-                <span aria-hidden>→</span>
-                <span className="rounded-pill bg-white/10 px-3 py-2">C 평가 증거</span>
-                <span aria-hidden>→</span>
-                <span className="rounded-pill bg-white/10 px-3 py-2">A 학습 활동</span>
-              </div>
-              <p className="mt-10 text-[1.75rem] font-semibold leading-[1.3] tracking-[-0.018em] text-white sm:text-[2rem]">
-                왜 거꾸로 가는 걸까요?
+              <p className="mx-auto mt-6 max-w-[30ch] text-[1.5rem] font-semibold leading-[1.45] tracking-[-0.018em] text-white sm:text-[1.75rem]">
+                학생이 무엇을 배우고 있는지가 보이는 수업과 그렇지 않은 수업을 구분하는 방법입니다.
               </p>
             </div>
           </section>
 
+          {/* ── 오늘 다시 설계할 나의 실제 수업 ──────────────────── */}
           <section className="bg-canvas py-14 sm:py-[72px]">
             <div className="reading">
+              <p className="text-fine font-semibold uppercase tracking-[0.1em] text-action">
+                오늘의 재료 고르기
+              </p>
+              <h2 className="mt-3 text-display-md">오늘 다시 설계할 나의 실제 수업</h2>
+              <p className="mt-4 text-body text-ink-80">
+                최근 실제로 가르쳤거나 앞으로 곧 가르칠 단원 하나를 떠올려 주세요. 오늘의 모든 활동은
+                가능하면 이 단원을 계속 사용합니다.
+              </p>
+
+              <div className="my-8 space-y-6 rounded-lg border border-hairline bg-canvas p-5 sm:p-7">
+                <div className="rounded-md bg-canvas-parchment px-4 py-3">
+                  <p className="text-caption text-ink-48">
+                    교과 · <strong className="font-semibold text-ink">{profile?.subject || "미기재"}</strong>
+                    <span className="mx-2 text-ink-48">/</span>
+                    학교급 · <strong className="font-semibold text-ink">{profile?.schoolLevel || "미기재"}</strong>
+                    <span className="ml-2 text-fine">(입장할 때 고르신 값입니다)</span>
+                  </p>
+                </div>
+
+                <AutoField
+                  field="unitName"
+                  label="단원명"
+                  single
+                  placeholder="예: 중2 과학 · 빛과 파동"
+                  help="교과서 단원명 그대로도 좋고, 선생님이 부르시는 이름도 좋습니다."
+                />
+
+                <AutoField
+                  field="initialActivity"
+                  label="이 단원에서 내가 가장 공들여 준비했던 활동은 무엇인가?"
+                  single
+                  placeholder="예: 실험, 토론, 게임, 영상, 프로젝트, 문제풀이 등"
+                />
+
+                <AutoField
+                  field="initialActivityReason"
+                  label="나는 왜 이 활동을 중요하게 생각했을까?"
+                  rows={2}
+                  placeholder="1~2문장이면 충분합니다."
+                  hint1="학생들의 반응 때문이었나요, 아니면 그 활동이 아니면 가르칠 수 없는 무언가가 있었나요?"
+                />
+              </div>
+
               <Block kind="teacher">
                 <p>
-                  방금 고르신 것 중에 틀린 답은 하나도 없습니다. 재미있는 활동을 찾는 것도, 교과서를 펴는 것도
-                  모두 실제 교실에서 필요한 일입니다.
+                  방금 적으신 이 활동을, 오늘 마지막 시간에 다시 꺼내 볼 겁니다. 그때 이 활동을 버릴지
+                  남길지 직접 결정하시게 됩니다.
                 </p>
                 <p>
-                  다만 활동에서 시작하면 이런 일이 자주 생깁니다. 수업은 활기찼는데, 단원이 끝난 뒤
-                  "그래서 학생에게 무엇이 남았나요?"라는 질문에 답하기가 어렵습니다. 평가도 수업과 따로
-                  준비되어, 결국 외운 것을 묻는 문제로 돌아가곤 합니다.
-                </p>
-                <p>
-                  그래서 오늘은 순서를 한 번 뒤집어 봅니다. 학생에게 남길 것을 먼저 정하고, 그것을 어떻게
-                  확인할지 정하고, 마지막에 그 증거가 나오도록 수업을 세웁니다.
+                  미리 말씀드리면, 오늘의 목적은 좋은 활동을 버리자는 것이 아닙니다. 그 활동이 무엇을 위한
+                  것이었는지를 분명히 하려는 것입니다.
                 </p>
               </Block>
+
+              {/* ── 축소된 기존 아이스브레이킹 ────────────────────── */}
+              <Disclosure
+                className="my-8"
+                tone="parchment"
+                title="짧게 하나만 더 · 나는 수업을 어디서부터 만들까?"
+              >
+                <p className="mb-4 text-caption text-ink-48">
+                  30초짜리 설문입니다. 새로운 단원을 맡았을 때 평소 가장 먼저 하시는 것을 고르세요.
+                </p>
+                <ChoiceList
+                  options={ICEBREAK_OPTIONS}
+                  selected={votedPoll as PollKey | null}
+                  onSelect={(k) => void castPoll(k)}
+                />
+                {votedPoll && (
+                  <div className="appear mt-6 rounded-lg border border-hairline bg-canvas px-5 py-5">
+                    <p className="mb-4 text-caption font-semibold text-ink-48">
+                      지금까지의 응답 {mode === "local" && "· 로컬 모드에서는 내 응답만 집계됩니다"}
+                    </p>
+                    <Bars data={icebreakData} />
+                    <p className="mt-5 border-t border-hairline pt-4 text-body-sm text-ink">
+                      오늘 우리는 <strong className="font-semibold">D</strong>에서 출발하여{" "}
+                      <strong className="font-semibold">C</strong>를 거쳐{" "}
+                      <strong className="font-semibold">A</strong>로 가보려고 합니다.
+                    </p>
+                  </div>
+                )}
+              </Disclosure>
+
+              <PullQuote>많이 가르치는 것이 깊이 있는 학습은 아닙니다.</PullQuote>
 
               <Block kind="read" title="오늘 150분 동안 하게 될 일">
                 <ol className="space-y-2.5">
                   {[
                     "1교시 · 내 교과의 성취기준 하나를 골라 세 차원으로 해부합니다.",
-                    "2교시 · 그 단원이 끝난 뒤 학생에게 남길 한 문장과 탐구질문을 만듭니다.",
-                    "3교시 · 그 이해가 드러날 수행과제와 평가요소, 피드백까지 설계합니다.",
-                    "마지막 · 지금까지 쓴 것이 A4 한 장 설계안으로 자동으로 모입니다.",
+                    "2교시 · 다룰 내용의 30%를 덜어내고, 남은 것을 한 문장으로 묶습니다.",
+                    "3교시 · 수행과제를 만들고, 그 과제를 직접 공격해 구멍을 찾아 고칩니다.",
+                    "마지막 · 처음에 적으신 그 활동과 다시 만납니다.",
                   ].map((t, i) => (
                     <li key={i} className="flex gap-3">
                       <span className="tabular mt-0.5 text-caption font-semibold text-action">
@@ -110,28 +185,10 @@ export default function Start() {
                 </ol>
               </Block>
 
-              <PullQuote>많이 가르치는 것이 깊이 있는 학습은 아닙니다.</PullQuote>
-
-              <PresenterTip>
-                <p>결과 그래프를 읽어 주되, 어느 것이 정답인지는 말하지 마세요.</p>
-                <p>
-                  A를 고른 분이 많다면 "가장 현실적인 선택입니다"라고 인정한 뒤, "그런데 그 활동이
-                  무엇을 남기는지 어떻게 확인하시나요?"로 넘어가면 자연스럽습니다.
-                </p>
-              </PresenterTip>
-
               <PageNav next={{ to: "/s1", label: "1교시 · 교육과정을 읽다" }} />
             </div>
           </section>
         </>
-      )}
-
-      {!votedPoll && (
-        <section className="bg-canvas-parchment py-12">
-          <div className="reading text-center text-caption text-ink-48">
-            하나를 선택하면 다음 이야기가 열립니다.
-          </div>
-        </section>
       )}
     </>
   );

@@ -14,6 +14,7 @@ export function DesignSheet() {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  const experiences = (d.learningExperiences ?? []).filter((e) => e.what.trim());
 
   return (
     <div
@@ -39,6 +40,7 @@ export function DesignSheet() {
       <div className="mt-3 space-y-3">
         <Section n="1" title="교육과정에서 출발하기">
           <Row label="성취기준" value={d.achievementStandard} />
+          <Row label="핵심 행동" value={d.standardCoreAction} />
           <div className="mt-1.5 grid grid-cols-3 gap-2">
             <Cell label="지식·이해" value={d.knowledgeUnderstanding} />
             <Cell label="과정·기능" value={d.processSkill} />
@@ -52,26 +54,33 @@ export function DesignSheet() {
         </Section>
 
         <Section n="3" title="어떤 질문으로 생각하게 할 것인가">
-          <div className="grid grid-cols-3 gap-2">
-            <Cell label="확인 질문" value={d.inquiryFact} />
-            <Cell label="연결 질문" value={d.inquiryConcept} />
-            <Cell label="확장·논쟁 질문" value={d.inquiryDebate} />
-          </div>
+          <Row label="핵심 탐구질문" value={d.keyInquiry} strong />
+          {(d.inquiryFact.trim() || d.inquiryConcept.trim() || d.inquiryDebate.trim()) && (
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              <Cell label="확인 질문" value={d.inquiryFact} />
+              <Cell label="연결 질문" value={d.inquiryConcept} />
+              <Cell label="확장·논쟁 질문" value={d.inquiryDebate} />
+            </div>
+          )}
         </Section>
 
         <Section n="4" title="무엇을 보면 이해했다고 판단할 것인가">
+          {/* RED TEAM 이후 수정본이 있으면 그것을 싣는다 — 최종본은 고친 과제다 */}
           <Row
             label="수행과제"
-            value={[
-              d.graspsG && `[목표] ${d.graspsG}`,
-              d.graspsR && `[역할] ${d.graspsR}`,
-              d.graspsA && `[대상] ${d.graspsA}`,
-              d.graspsS && `[상황] ${d.graspsS}`,
-              d.graspsP && `[산출물] ${d.graspsP}`,
-              d.graspsS2 && `[기준] ${d.graspsS2}`,
-            ]
-              .filter(Boolean)
-              .join("  ")}
+            value={
+              d.performanceTaskAfter?.trim() ||
+              [
+                d.graspsG && `[목표] ${d.graspsG}`,
+                d.graspsR && `[역할] ${d.graspsR}`,
+                d.graspsA && `[대상] ${d.graspsA}`,
+                d.graspsS && `[상황] ${d.graspsS}`,
+                d.graspsP && `[산출물] ${d.graspsP}`,
+                d.graspsS2 && `[기준] ${d.graspsS2}`,
+              ]
+                .filter(Boolean)
+                .join("  ")
+            }
           />
           {elements.length > 0 && (
             <table className="mt-1.5 w-full border-collapse text-[9.5px]">
@@ -86,7 +95,12 @@ export function DesignSheet() {
               <tbody>
                 {elements.map((e, i) => (
                   <tr key={i} className="align-top">
-                    <td className="border border-hairline px-1.5 py-1 font-semibold">{e.name}</td>
+                    <td className="border border-hairline px-1.5 py-1 font-semibold">
+                      {d.assessmentElements.indexOf(e) === (d.keyAssessmentIndex ?? 0) && (
+                        <span className="mr-1 text-[9px]">★</span>
+                      )}
+                      {e.name}
+                    </td>
                     <td className="border border-hairline px-1.5 py-1">{e.high}</td>
                     <td className="border border-hairline px-1.5 py-1">{e.mid}</td>
                     <td className="border border-hairline px-1.5 py-1">{e.low}</td>
@@ -98,7 +112,21 @@ export function DesignSheet() {
         </Section>
 
         <Section n="5" title="어떤 학습 경험을 제공할 것인가">
-          {activities.length > 0 ? (
+          {experiences.length > 0 ? (
+            <ol className="sheet-body space-y-0.5 text-[10px] leading-[1.45]">
+              {experiences.map((e, i) => (
+                <li key={i} className="flex gap-1.5">
+                  <span className="text-ink-48">·</span>
+                  <span>
+                    {e.what}
+                    {e.evidence.trim() && (
+                      <span className="text-ink-48"> → {e.evidence.trim()}</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : activities.length > 0 ? (
             <ol className="sheet-body space-y-0.5 text-[10px] leading-[1.45]">
               {activities.map((a, i) => (
                 <li key={i} className="flex gap-1.5">

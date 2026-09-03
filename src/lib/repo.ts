@@ -42,7 +42,6 @@ import {
   type ActivityId,
   type DesignDoc,
   type Participant,
-  type PollKey,
   type Post,
   type Reflection,
   type SessionDoc,
@@ -68,7 +67,8 @@ export interface Repo {
   saveDesign(sessionId: string, uid: string, patch: Partial<DesignDoc>): Promise<void>;
   markProgress(sessionId: string, uid: string, activityId: ActivityId): Promise<void>;
   setParticipantStep(sessionId: string, uid: string, step: StepId): Promise<void>;
-  vote(sessionId: string, key: PollKey): Promise<void>;
+  /** 선택형 활동 집계 — key 는 pollResults map 안의 키 (예: 'A', 'autopsy_B') */
+  vote(sessionId: string, key: string): Promise<void>;
   voteTask(sessionId: string, key: TaskPollKey): Promise<void>;
   watchPosts(sessionId: string, activityId: ActivityId, cb: (posts: Post[]) => void): Unsub;
   addPost(sessionId: string, post: Omit<Post, "id" | "createdAt" | "likes" | "likedBy" | "isPinned" | "comments">): Promise<void>;
@@ -561,6 +561,8 @@ const fsRepo: Repo = {
             return {
               uid: d.id,
               nickname: v.nickname ?? "익명",
+              stopDoing: v.stopDoing ?? "",
+              startDoing: v.startDoing ?? "",
               newLearning: v.newLearning ?? "",
               changeToTry: v.changeToTry ?? "",
               nextRevision: v.nextRevision ?? "",

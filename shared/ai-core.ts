@@ -59,8 +59,13 @@ GOOD: (좋은 점 한 가지 — 최대 2개)
 THINK: (생각해볼 점 한 가지)
 THINK: (생각해볼 점 한 가지 — 최대 3개)
 SUGGEST: (수정 예시 — 선생님이 그대로 붙여 쓸 수 있는 완성된 문장이나 문단 하나)
+ASK: (마지막으로 되묻는 질문 하나. 답을 주지 말고, 선생님이 자기 설계를 다시 의심해 보게 만드는 질문을 쓴다)
 
-각 줄은 2~3문장을 넘기지 않습니다. 한국어로 씁니다.`;
+각 줄은 2~3문장을 넘기지 않습니다. 한국어로 씁니다.
+
+ASK 는 반드시 물음표로 끝나는 한 문장이어야 하고, 앞에서 이미 말한 것을 되풀이하지 않습니다.
+좋은 예: "이 수행과제에서 학생이 굴절 개념을 쓰지 않고도 결과물을 만들 방법은 없을까요?"
+나쁜 예: "더 구체적으로 써 보시는 것은 어떨까요?" (무엇을 다시 생각해야 하는지가 없다)`;
 
 const TASK_SYSTEM: Record<Task, string> = {
   standard: `이번 점검 대상은 「성취기준 해부」입니다.
@@ -159,28 +164,35 @@ function parseResult(raw: string) {
   const good: string[] = [];
   const think: string[] = [];
   const suggest: string[] = [];
-  let mode: "good" | "think" | "suggest" | null = null;
+  const ask: string[] = [];
+  let mode: "good" | "think" | "suggest" | "ask" | null = null;
 
   for (const line of raw.split("\n")) {
     const t = line.trim().replace(/^[-*•]\s*/, "");
     if (!t) continue;
-    const m = /^(GOOD|THINK|SUGGEST)\s*[:：]\s*(.*)$/i.exec(t);
+    const m = /^(GOOD|THINK|SUGGEST|ASK)\s*[:：]\s*(.*)$/i.exec(t);
     if (m) {
-      mode = m[1].toLowerCase() as "good" | "think" | "suggest";
+      mode = m[1].toLowerCase() as "good" | "think" | "suggest" | "ask";
       const rest = m[2].trim();
-      if (rest) (mode === "good" ? good : mode === "think" ? think : suggest).push(rest);
+      if (rest) (mode === "good" ? good : mode === "think" ? think : mode === "ask" ? ask : suggest).push(rest);
       continue;
     }
-    if (mode === "suggest") suggest.push(t);
+    if (mode === "ask") ask.push(t);
+    else if (mode === "suggest") suggest.push(t);
     else if (mode === "good" && good.length) good[good.length - 1] += " " + t;
     else if (mode === "think" && think.length) think[think.length - 1] += " " + t;
   }
 
   // 형식을 지키지 않은 응답도 버리지 않는다 — 통째로 '생각해볼 점'에 넣는다.
-  if (!good.length && !think.length && !suggest.length) {
-    return { good: [], think: [raw.trim().slice(0, 1200)], suggestion: "" };
+  if (!good.length && !think.length && !suggest.length && !ask.length) {
+    return { good: [], think: [raw.trim().slice(0, 1200)], suggestion: "", ask: "" };
   }
-  return { good: good.slice(0, 3), think: think.slice(0, 4), suggestion: suggest.join("\n").trim() };
+  return {
+    good: good.slice(0, 3),
+    think: think.slice(0, 4),
+    suggestion: suggest.join("\n").trim(),
+    ask: ask.join(" ").trim(),
+  };
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -410,7 +422,7 @@ function rateLimited(ip: string, perMin: number): boolean {
    ══════════════════════════════════════════════════════════════════════════ */
 
 export type ReviewResult =
-  | { ok: true; good: string[]; think: string[]; suggestion: string; raw: string }
+  | { ok: true; good: string[]; think: string[]; suggestion: string; ask: string; raw: string }
   | { ok: false; message: string };
 
 export async function handleReview(body: unknown, env: Env, ip: string): Promise<ReviewResult> {

@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { ELEMENT_BANK } from "@/content/examples";
@@ -15,11 +16,16 @@ const LEVELS: { key: keyof Omit<AssessmentElement, "name">; label: string; hint:
 
 /**
  * 평가요소 + 수행수준 편집기.
- * A4 한 장 안에 들어가야 하므로 요소는 최대 3개로 제한한다 — 이 제한 자체가 교육 내용이다.
+ *
+ * 세 요소 모두 상·중·하를 쓰게 하면 6분 안에 끝나지 않는다.
+ * 그래서 「가장 중요한 평가요소 하나」만 자세히 쓰게 하고, 나머지는 이름만 남긴다.
+ * 전부 쓰고 싶은 사람을 막지는 않는다 — 버튼 하나로 모두 펼칠 수 있다.
  */
 export function RubricBuilder() {
   const { design, update } = useSession();
   const items = design.assessmentElements?.length ? design.assessmentElements : [{ ...EMPTY_ELEMENT }];
+  const keyIndex = Math.min(design.keyAssessmentIndex ?? 0, items.length - 1);
+  const [showAll, setShowAll] = useState(false);
 
   const setItems = (next: AssessmentElement[]) => update({ assessmentElements: next });
 
@@ -27,7 +33,12 @@ export function RubricBuilder() {
     setItems(items.map((it, idx) => (idx === i ? { ...it, ...p } : it)));
 
   const add = () => items.length < MAX && setItems([...items, { ...EMPTY_ELEMENT }]);
-  const remove = (i: number) => setItems(items.length > 1 ? items.filter((_, idx) => idx !== i) : items);
+
+  const remove = (i: number) => {
+    if (items.length <= 1) return;
+    setItems(items.filter((_, idx) => idx !== i));
+    if (keyIndex >= items.length - 1) update({ keyAssessmentIndex: 0 });
+  };
 
   const used = new Set(items.map((i) => i.name));
 
@@ -63,49 +74,97 @@ export function RubricBuilder() {
         </div>
       </div>
 
-      {items.map((it, i) => (
-        <div key={i} className="rounded-lg border border-hairline bg-canvas">
-          <div className="flex items-center gap-3 border-b border-hairline bg-canvas-parchment px-4 py-3">
-            <span className="tabular text-caption font-semibold text-action">평가요소 {i + 1}</span>
-            <Input
-              value={it.name}
-              onChange={(e) => patch(i, { name: e.target.value })}
-              placeholder="예: 주장과 근거의 연결"
-              className="flex-1 border-transparent bg-transparent px-2 py-1.5 font-semibold"
-            />
-            {items.length > 1 && (
+      <p className="rounded-md bg-canvas-parchment px-4 py-3 text-caption leading-[1.65] text-ink-80">
+        요소 옆의 <Star className="inline h-3.5 w-3.5 -translate-y-px text-action" /> 를 눌러{" "}
+        <strong className="font-semibold text-ink">이번 과제에서 가장 중요한 평가요소 하나</strong>를 정하세요.
+        그 하나만 상·중·하를 자세히 씁니다.
+      </p>
+
+      {items.map((it, i) => {
+        const isKey = i === keyIndex;
+        const showLevels = isKey || showAll;
+        return (
+          <div
+            key={i}
+            className={cn(
+              "rounded-lg border bg-canvas",
+              isKey ? "border-action" : "border-hairline",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center gap-2 border-b px-4 py-3",
+                isKey ? "border-action/30 bg-action/[0.05]" : "border-hairline bg-canvas-parchment",
+              )}
+            >
               <button
                 type="button"
-                onClick={() => remove(i)}
-                aria-label="이 평가요소 삭제"
-                className="rounded-md p-1.5 text-ink-48 hover:bg-canvas"
+                onClick={() => update({ keyAssessmentIndex: i })}
+                aria-label="가장 중요한 평가요소로 지정"
+                title="가장 중요한 평가요소로 지정"
+                className="rounded-md p-1 transition-transform active:scale-90"
               >
-                <Trash2 className="h-4 w-4" />
+                <Star
+                  className={cn("h-4 w-4", isKey ? "fill-action text-action" : "text-ink-48 hover:text-action")}
+                />
               </button>
+              <span className={cn("tabular text-caption font-semibold", isKey ? "text-action" : "text-ink-48")}>
+                {isKey ? "핵심 평가요소" : `평가요소 ${i + 1}`}
+              </span>
+              <Input
+                value={it.name}
+                onChange={(e) => patch(i, { name: e.target.value })}
+                placeholder="예: 주장과 근거의 연결"
+                className="flex-1 border-transparent bg-transparent px-2 py-1.5 font-semibold"
+              />
+              {items.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => remove(i)}
+                  aria-label="이 평가요소 삭제"
+                  className="rounded-md p-1.5 text-ink-48 transition-transform active:scale-95 hover:text-bad"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {showLevels ? (
+              <div className="grid gap-4 px-4 py-4 sm:grid-cols-3">
+                {LEVELS.map((lv) => (
+                  <div key={lv.key} className="space-y-1.5">
+                    <Label>{lv.label}</Label>
+                    <Textarea
+                      rows={3}
+                      value={it[lv.key]}
+                      onChange={(e) => patch(i, { [lv.key]: e.target.value })}
+                      placeholder={lv.hint}
+                      className="text-body-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="px-4 py-3 text-caption text-ink-48">
+                이름만 저장됩니다. 수준까지 쓰고 싶다면 아래에서 모두 펼치세요.
+              </p>
             )}
           </div>
-          <div className="grid gap-4 px-4 py-4 sm:grid-cols-3">
-            {LEVELS.map((lv) => (
-              <div key={lv.key} className="space-y-1.5">
-                <Label>{lv.label}</Label>
-                <Textarea
-                  rows={3}
-                  value={it[lv.key]}
-                  onChange={(e) => patch(i, { [lv.key]: e.target.value })}
-                  placeholder={lv.hint}
-                  className="text-body-sm"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {items.length < MAX && (
-        <Button variant="pearl" size="sm" onClick={add}>
-          <Plus className="h-4 w-4" /> 평가요소 추가 ({items.length}/{MAX})
-        </Button>
-      )}
+      <div className="flex flex-wrap gap-3">
+        {items.length < MAX && (
+          <Button variant="pearl" size="sm" onClick={add}>
+            <Plus className="h-4 w-4" /> 평가요소 추가 ({items.length}/{MAX})
+          </Button>
+        )}
+        {items.length > 1 && (
+          <Button variant="quiet" size="sm" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? "핵심 요소만 보기" : "다른 평가요소도 수준 작성하기"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

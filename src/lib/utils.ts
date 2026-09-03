@@ -90,3 +90,16 @@ export function wordFrequency(sentences: string[], limit = 40) {
     .slice(0, limit)
     .map(([word, count]) => ({ word, count }));
 }
+
+/**
+ * 받침 여부에 따라 목적격 조사(을/를)를 고른다.
+ * 문장 틀에 사용자가 쓴 단어를 끼워 넣을 때 "문장를"처럼 어색해지는 것을 막는다.
+ * 한글이 아닌 글자로 끝나면 '를'로 둔다(외래어·숫자에서 대체로 자연스럽다).
+ */
+export function objectParticle(word: string) {
+  const w = word.trim();
+  if (!w) return "를";
+  const code = w.charCodeAt(w.length - 1) - 0xac00;
+  if (code < 0 || code > 11171) return "를";
+  return code % 28 === 0 ? "를" : "을";
+}

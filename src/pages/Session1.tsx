@@ -332,6 +332,7 @@ export default function Session1() {
                   "지식·이해": design.knowledgeUnderstanding,
                   "과정·기능": design.processSkill,
                   "가치·태도": design.valueAttitude,
+                  "핵심 행동": design.standardCoreAction,
                 })}
               />
               <AiCoach task="standard" />
@@ -385,6 +386,32 @@ export default function Session1() {
             세 칸을 다 채우지 못해도 괜찮습니다. 오늘 중요한 것은 완벽한 분석이 아니라,{" "}
             <strong>성취기준을 도착점으로 읽는 연습</strong>입니다.
           </Note>
+
+          {/* ── 핵심 행동 하나 고르기 ─────────────────────────── */}
+          <div className="rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-5 sm:px-6">
+            <p className="text-fine font-semibold uppercase tracking-[0.08em] text-action">
+              마지막 한 칸
+            </p>
+            <h4 className="mt-2 text-tagline">성취기준이 학생에게 요구하는 가장 중요한 행동은?</h4>
+            <p className="mt-2 text-body-sm leading-[1.7] text-ink-80">
+              이 성취기준에 도달한 학생이 실제로 반드시 보여줘야 하는 행동 하나를 골라 적어 보세요.
+            </p>
+            <div className="mt-5">
+              <AutoField
+                field="standardCoreAction"
+                label="반드시 보여줘야 하는 행동 하나"
+                single
+                placeholder="동사 하나로 적어 주세요."
+                hint1="성취기준 문장의 서술어를 다시 보세요. '~할 수 있다' 앞에 있는 말이 대개 그 행동입니다."
+                hint2="학생이 그 행동을 하지 않고도 단원을 통과할 수 있다면, 그것은 핵심 행동이 아닙니다."
+                example="설명한다 / 비교한다 / 해석한다 / 표현한다 / 설계한다 / 판단한다"
+              />
+            </div>
+            <p className="mt-4 border-t border-hairline pt-4 text-caption text-ink-80">
+              이 행동은 뒤에서 <strong className="font-semibold text-ink">평가 증거를 설계할 때 다시
+              사용합니다.</strong>
+            </p>
+          </div>
         </ActivityCard>
 
         <CompareCards
