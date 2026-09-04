@@ -6,8 +6,8 @@ import { LadderBoard, COUNTDOWN_MS, LADDER_TOTAL_MS } from "./LadderBoard";
 import { repo } from "@/lib/repo";
 import { countdownLabel, deriveLadder } from "@/lib/ladder-game";
 import { useSession } from "@/lib/session-context";
-import { AUTOPSY_CASES } from "@/content/examples";
-import type { Participant } from "@/lib/types";
+import { LADDER_GAMES } from "@/content/ladderGames";
+import type { LadderGameId, Participant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** 결과가 흐르는 동안에만 도는 시계 — 다 끝나면 스스로 멈춘다 */
@@ -21,14 +21,16 @@ function useTicker(active: boolean) {
 }
 
 /**
- * 수업 부검실 아래에 붙는 발표자 뽑기.
+ * 발표자 뽑기. 연수 중 두 곳(START 수업 부검실 · 2교시 좋은 질문 판별)에
+ * 같은 컴포넌트를 gameId 만 바꿔 붙인다. 두 판은 서로를 모른다.
  *
  * 참가자 목록은 모달이 열려 있을 때만 구독한다. 다만 강사가 결과를 열면
  * 모달이 닫혀 있어도 자동으로 열린다 — 연수 현장에서 "다시 눌러 주세요"라고
  * 안내하는 시간이 아깝기 때문이다.
  */
-export function LadderGame() {
+export function LadderGame({ gameId }: { gameId: LadderGameId }) {
   const { sessionId, uid, session, design } = useSession();
+  const def = LADDER_GAMES[gameId];
   const [open, setOpen] = useState(false);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [busy, setBusy] = useState(false);
@@ -36,9 +38,10 @@ export function LadderGame() {
   const [notice, setNotice] = useState("");
   const autoOpened = useRef(0);
 
-  const status = session?.ladder?.status ?? "seating";
-  const round = session?.ladder?.round ?? 1;
-  const startedAt = session?.ladder?.startedAt ?? 0;
+  const game = session?.ladders?.[gameId];
+  const status = game?.status ?? "seating";
+  const round = game?.round ?? 1;
+  const startedAt = game?.startedAt ?? 0;
 
   // 결과가 열리면 저절로 펼쳐 준다 (같은 라운드에 한 번만)
   useEffect(() => {
@@ -48,14 +51,20 @@ export function LadderGame() {
     }
   }, [status, round]);
 
+  // 판이 바뀌면 자동 열기 기록도 판별로 새로 센다
+  useEffect(() => {
+    autoOpened.current = 0;
+  }, [gameId]);
+
   useEffect(() => {
     if (!open || !sessionId) return;
     return repo.watchParticipants(sessionId, setParticipants);
   }, [open, sessionId]);
 
-  const view = useMemo(() => deriveLadder(session, participants), [session, participants]);
+  const view = useMemo(() => deriveLadder(session, participants, gameId), [session, participants, gameId]);
   const me = view.joined.find((p) => p.uid === uid) ?? null;
-  const mySeat = typeof me?.ladderSeat === "number" ? me.ladderSeat : null;
+  const mine = me?.ladderSeats?.[gameId];
+  const mySeat = typeof mine?.seat === "number" ? mine.seat : null;
 
   const elapsed = startedAt ? Date.now() - startedAt : 0;
   const running = view.status === "running";
@@ -67,12 +76,12 @@ export function LadderGame() {
     setBusy(true);
     setNotice("");
     try {
-      await repo.joinLadder(sessionId, uid, round);
+      await repo.joinLadder(sessionId, uid, gameId, round);
     } catch {
       setNotice("참여 등록에 실패했습니다. 잠시 뒤 다시 눌러 주세요.");
     }
     setBusy(false);
-  }, [sessionId, uid, round]);
+  }, [sessionId, uid, gameId, round]);
 
   const pickSeat = useCallback(
     async (seat: number) => {
@@ -80,7 +89,7 @@ export function LadderGame() {
       setBusy(true);
       setNotice("");
       try {
-        const won = await repo.claimLadderSeat(sessionId, uid, round, seat, mySeat);
+        const won = await repo.claimLadderSeat(sessionId, uid, gameId, round, seat, mySeat);
         if (!won) setNotice("방금 다른 선생님이 그 자리를 가져갔습니다. 다른 자리를 골라 주세요.");
         else setMoving(false);
       } catch {
@@ -88,11 +97,12 @@ export function LadderGame() {
       }
       setBusy(false);
     },
-    [sessionId, uid, round, mySeat, busy],
+    [sessionId, uid, gameId, round, mySeat, busy],
   );
 
   const myOutcome = uid ? view.outcomeOf(uid) : null;
-  const myCase = AUTOPSY_CASES.find((c) => c.key === design.autopsyChoice);
+  const myPick = def.options.find((c) => c.key === (design[def.choiceField] as string));
+  const myReason = (design[def.reasonField] as string) ?? "";
 
   return (
     <>
@@ -101,9 +111,7 @@ export function LadderGame() {
           <Dices className="h-4 w-4" aria-hidden />
           사다리타기로 발표자 뽑기
         </Button>
-        <p className="mt-2 text-caption text-ink-48">
-          자리를 하나 골라 주세요. 사다리 끝에서 발표자가 결정됩니다.
-        </p>
+        <p className="mt-2 text-caption text-ink-48">{def.hint}</p>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -162,12 +170,12 @@ export function LadderGame() {
                         <p className="text-body-sm font-semibold text-action">🎤 발표자로 선정되셨습니다!</p>
                         <div className="mt-3 space-y-2 text-body-sm text-ink">
                           <p>
-                            <span className="text-caption text-ink-48">내 선택 · </span>
-                            {myCase ? myCase.title : "아직 고르지 않았습니다"}
+                            <span className="text-caption text-ink-48">{def.choiceLabel} · </span>
+                            {myPick ? myPick.title : "아직 고르지 않았습니다"}
                           </p>
                           <p className="whitespace-pre-wrap">
                             <span className="text-caption text-ink-48">내가 적은 이유 · </span>
-                            {design.autopsyReason?.trim() || "적어 두신 이유가 없습니다"}
+                            {myReason.trim() || "적어 두신 이유가 없습니다"}
                           </p>
                         </div>
                         <p className="mt-3 text-caption text-ink-48">
@@ -181,7 +189,7 @@ export function LadderGame() {
                     )}
 
                     <p className="mt-6 text-caption text-ink-48">
-                      두 선생님께서 조금 전에 선택하신 수업과 그 이유를 들려주세요.
+                      {def.askLine}
                     </p>
                   </div>
                 )}

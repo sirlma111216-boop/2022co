@@ -5,7 +5,15 @@
  * 세션 문서 + 참가자 목록이라는 같은 입력을 같은 함수에 넣는다.
  */
 import { buildRungs, ladderRows, pickPresentSlots, traceLadder } from "./ladder";
-import { EMPTY_LADDER, type LadderRung, type LadderSlot, type LadderState, type Participant, type SessionDoc } from "./types";
+import {
+  EMPTY_LADDER,
+  type LadderGameId,
+  type LadderRung,
+  type LadderSlot,
+  type LadderState,
+  type Participant,
+  type SessionDoc,
+} from "./types";
 
 export interface LadderPresenter extends LadderSlot {
   /** 사다리 위에서의 열 (비상 추첨이면 -1) */
@@ -13,6 +21,7 @@ export interface LadderPresenter extends LadderSlot {
 }
 
 export interface LadderView {
+  game: LadderGameId;
   state: LadderState;
   round: number;
   status: LadderState["status"];
@@ -36,22 +45,24 @@ export interface LadderView {
 export function deriveLadder(
   session: SessionDoc | null,
   participants: Participant[],
+  game: LadderGameId,
 ): LadderView {
-  const state = session?.ladder ?? EMPTY_LADDER;
+  const state = session?.ladders?.[game] ?? EMPTY_LADDER;
   const round = state.round;
+  const seatOf = (p: Participant) => p.ladderSeats?.[game];
 
   const joined = participants
-    .filter((p) => p.ladderRound === round)
+    .filter((p) => seatOf(p)?.round === round)
     .slice()
     .sort((a, b) => a.joinedAt - b.joinedAt);
-  const seated = joined.filter((p) => typeof p.ladderSeat === "number");
+  const seated = joined.filter((p) => typeof seatOf(p)?.seat === "number");
 
   // 자리 수는 참가 신청자 수. 늦게 들어온 사람 때문에 늘기만 하므로
   // 이미 고른 자리 번호가 무효가 되는 일은 없다.
-  const seatCount = Math.max(joined.length, ...seated.map((p) => (p.ladderSeat ?? 0) + 1), 0);
+  const seatCount = Math.max(joined.length, ...seated.map((p) => (seatOf(p)?.seat ?? 0) + 1), 0);
 
   const seatOwner = (seat: number): LadderSlot | null => {
-    const p = seated.find((x) => x.ladderSeat === seat);
+    const p = seated.find((x) => seatOf(x)?.seat === seat);
     return p ? { uid: p.uid, nick: p.nickname } : null;
   };
 
@@ -85,6 +96,7 @@ export function deriveLadder(
   };
 
   return {
+    game,
     state,
     round,
     status: state.status,
@@ -109,7 +121,7 @@ export function startLadder(view: LadderView, seed: string): LadderState {
   // 자리를 고른 사람만 열이 된다 — 빈 열이 있으면 발표자가 두 명이 안 나온다
   const slots: LadderSlot[] = view.seated
     .slice()
-    .sort((a, b) => (a.ladderSeat ?? 0) - (b.ladderSeat ?? 0))
+    .sort((a, b) => (a.ladderSeats?.[view.game]?.seat ?? 0) - (b.ladderSeats?.[view.game]?.seat ?? 0))
     .map((p) => ({ uid: p.uid, nick: p.nickname }));
   const cols = slots.length;
   const next: LadderState = {

@@ -42,6 +42,7 @@ import {
   EMPTY_DESIGN,
   type ActivityId,
   type DesignDoc,
+  type LadderGameId,
   type LadderState,
   type Participant,
   type Post,
@@ -89,7 +90,7 @@ export interface Repo {
   watchParticipants(sessionId: string, cb: (p: Participant[]) => void): Unsub;
   // ── 사다리타기 발표자 뽑기 ────────────────────────────────────
   /** 이번 라운드에 참가 신청 (자기 참가자 문서에만 쓴다) */
-  joinLadder(sessionId: string, uid: string, round: number): Promise<void>;
+  joinLadder(sessionId: string, uid: string, game: LadderGameId, round: number): Promise<void>;
   /**
    * 자리 예약. 두 사람이 같은 자리를 동시에 눌러도 한 명만 성공해야 하므로
    * 세션 문서 하나를 놓고 compare-and-set 한다.
@@ -98,12 +99,13 @@ export interface Repo {
   claimLadderSeat(
     sessionId: string,
     uid: string,
+    game: LadderGameId,
     round: number,
     seat: number,
     prevSeat: number | null,
   ): Promise<boolean>;
   /** 게임 상태 갱신 — 강사만 호출한다 */
-  setLadder(sessionId: string, next: LadderState): Promise<void>;
+  setLadder(sessionId: string, game: LadderGameId, next: LadderState): Promise<void>;
   // ── 강사용 ────────────────────────────────────────────────
   watchInstructor(cb: (user: User | null, isInstructor: boolean) => void): Unsub;
   signInInstructor(): Promise<void>;
@@ -335,29 +337,41 @@ const localRepo: Repo = {
     return subscribe(key, push);
   },
 
-  async joinLadder(sessionId, uid, round) {
+  async joinLadder(sessionId, uid, game, round) {
     const pkey = LS.participants(sessionId);
     const list = read<Participant[]>(pkey, []);
-    write(pkey, list.map((p) => (p.uid === uid ? { ...p, ladderRound: round, ladderSeat: null } : p)));
+    write(
+      pkey,
+      list.map((p) =>
+        p.uid === uid
+          ? { ...p, ladderSeats: { ...p.ladderSeats, [game]: { round, seat: null } } }
+          : p,
+      ),
+    );
   },
 
-  async claimLadderSeat(sessionId, uid, round, seat) {
+  async claimLadderSeat(sessionId, uid, game, round, seat) {
     // 로컬 모드는 한 브라우저 안이라 경쟁이 없다. 그래도 규칙은 같게 지킨다.
     const pkey = LS.participants(sessionId);
     const list = read<Participant[]>(pkey, []);
-    const taken = list.some((p) => p.uid !== uid && p.ladderRound === round && p.ladderSeat === seat);
+    const taken = list.some((p) => {
+      const mine = p.ladderSeats?.[game];
+      return p.uid !== uid && mine?.round === round && mine?.seat === seat;
+    });
     if (taken) return false;
     write(
       pkey,
-      list.map((p) => (p.uid === uid ? { ...p, ladderRound: round, ladderSeat: seat } : p)),
+      list.map((p) =>
+        p.uid === uid ? { ...p, ladderSeats: { ...p.ladderSeats, [game]: { round, seat } } } : p,
+      ),
     );
     return true;
   },
 
-  async setLadder(sessionId, next) {
+  async setLadder(sessionId, game, next) {
     const skey = LS.session(sessionId);
     const s = read<SessionDoc>(skey, makeLocalSession(sessionId));
-    write(skey, { ...s, ladder: next });
+    write(skey, { ...s, ladders: { ...s.ladders, [game]: next } });
   },
 
   watchParticipants(sessionId, cb) {
@@ -476,7 +490,7 @@ const fsRepo: Repo = {
           isActive: d.isActive ?? true,
           pollResults: { ...DEFAULT_POLL, ...(d.pollResults ?? {}) },
           taskPollResults: { ...DEFAULT_TASK_POLL, ...(d.taskPollResults ?? {}) },
-          ladder: (d.ladder as LadderState | undefined) ?? undefined,
+          ladders: (d.ladders as SessionDoc["ladders"]) ?? undefined,
         });
       },
       () => cb(null),
@@ -633,10 +647,11 @@ const fsRepo: Repo = {
     );
   },
 
-  async joinLadder(sessionId, uid, round) {
+  async joinLadder(sessionId, uid, game, round) {
+    // merge 는 map 안쪽까지 병합하므로 다른 판의 자리는 그대로 남는다
     await setDoc(
       doc(participantsCol(sessionId), uid),
-      { ladderRound: round, ladderSeat: null, lastSeenAt: serverTimestamp() },
+      { ladderSeats: { [game]: { round, seat: null } }, lastSeenAt: serverTimestamp() },
       { merge: true },
     );
   },
@@ -650,16 +665,17 @@ const fsRepo: Repo = {
    * 이름은 각자 자기 참가자 문서에 쓴다 — 잠금과 표시를 분리해 두면
    * 규칙을 한 줄도 바꾸지 않고 중복을 막을 수 있다.
    */
-  async claimLadderSeat(sessionId, uid, round, seat, prevSeat) {
+  async claimLadderSeat(sessionId, uid, game, round, seat, prevSeat) {
     const ref = sessionDoc(sessionId);
-    const key = ladderSeatKey(round, seat);
+    const key = ladderSeatKey(game, round, seat);
     const won = await runTransaction(db(), async (tx) => {
       const snap = await tx.get(ref);
       const polls = (snap.data()?.pollResults ?? {}) as Record<string, number>;
       if ((polls[key] ?? 0) > 0) return false;
       const patch: Record<string, number> = { [`pollResults.${key}`]: 1 };
       // 자리를 옮기는 경우 예전 자리는 즉시 풀어 준다
-      if (prevSeat !== null && prevSeat !== seat) patch[`pollResults.${ladderSeatKey(round, prevSeat)}`] = 0;
+      if (prevSeat !== null && prevSeat !== seat)
+        patch[`pollResults.${ladderSeatKey(game, round, prevSeat)}`] = 0;
       tx.update(ref, patch);
       return true;
     });
@@ -668,7 +684,7 @@ const fsRepo: Repo = {
     try {
       await setDoc(
         doc(participantsCol(sessionId), uid),
-        { ladderRound: round, ladderSeat: seat, lastSeenAt: serverTimestamp() },
+        { ladderSeats: { [game]: { round, seat } }, lastSeenAt: serverTimestamp() },
         { merge: true },
       );
     } catch (e) {
@@ -679,9 +695,11 @@ const fsRepo: Repo = {
     return true;
   },
 
-  async setLadder(sessionId, next) {
+  async setLadder(sessionId, game, next) {
     // undefined 가 하나라도 섞이면 Firestore 가 쓰기를 통째로 거부한다
-    await updateDoc(sessionDoc(sessionId), { ladder: JSON.parse(JSON.stringify(next)) });
+    await updateDoc(sessionDoc(sessionId), {
+      [`ladders.${game}`]: JSON.parse(JSON.stringify(next)),
+    });
   },
 
   watchParticipants(sessionId, cb) {
@@ -699,8 +717,7 @@ const fsRepo: Repo = {
               joinedAt: ts(v.joinedAt),
               currentStep: (v.currentStep ?? "start") as StepId,
               progress: v.progress ?? {},
-              ladderRound: typeof v.ladderRound === "number" ? v.ladderRound : undefined,
-              ladderSeat: typeof v.ladderSeat === "number" ? v.ladderSeat : null,
+              ladderSeats: v.ladderSeats ?? undefined,
             };
           }),
         ),

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LadderBoard, COUNTDOWN_MS, LADDER_TOTAL_MS } from "@/components/activity/LadderBoard";
-import { AUTOPSY_CASES } from "@/content/examples";
+import { LADDER_GAMES, LADDER_GAME_LIST } from "@/content/ladderGames";
 import { repo } from "@/lib/repo";
 import {
   countdownLabel,
@@ -15,7 +15,8 @@ import {
   resetLadder,
   startLadder,
 } from "@/lib/ladder-game";
-import type { Participant, SessionDoc } from "@/lib/types";
+import type { LadderGameId, Participant, SessionDoc } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 /** 발표자 두 사람이 부검실에서 무엇을 골랐는지 — 강사가 바로 물어볼 수 있게 */
 interface PickedAnswer {
@@ -24,6 +25,10 @@ interface PickedAnswer {
   reason: string;
 }
 
+/**
+ * 사다리는 연수 중 두 번 돈다. 두 판이 한 화면에 같이 있으면 어느 쪽 버튼인지
+ * 헷갈려서 사고가 난다 — 탭으로 하나만 보여 준다.
+ */
 export function LadderPanel({
   sessionId,
   session,
@@ -33,7 +38,58 @@ export function LadderPanel({
   session: SessionDoc | null;
   participants: Participant[];
 }) {
-  const view = useMemo(() => deriveLadder(session, participants), [session, participants]);
+  const [tab, setTab] = useState<LadderGameId>("start");
+
+  return (
+    <div className="rounded-lg border border-hairline bg-canvas p-5 sm:p-6">
+      <h3 className="flex items-center gap-2 text-tagline">
+        <Dices className="h-4 w-4 text-action" aria-hidden />
+        사다리타기 발표자 뽑기
+      </h3>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {LADDER_GAME_LIST.map((g) => {
+          const st = session?.ladders?.[g.id]?.status;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => setTab(g.id)}
+              className={cn(
+                "rounded-pill border px-3.5 py-1.5 text-caption transition-transform active:scale-95",
+                tab === g.id
+                  ? "border-action bg-action text-white"
+                  : "border-hairline bg-canvas text-ink-80",
+              )}
+            >
+              {g.tab}
+              {st === "running" && <span className="ml-1.5 text-fine opacity-70">· 공개됨</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <LadderRound key={tab} gameId={tab} sessionId={sessionId} session={session} participants={participants} />
+    </div>
+  );
+}
+
+function LadderRound({
+  gameId,
+  sessionId,
+  session,
+  participants,
+}: {
+  gameId: LadderGameId;
+  sessionId: string;
+  session: SessionDoc | null;
+  participants: Participant[];
+}) {
+  const def = LADDER_GAMES[gameId];
+  const view = useMemo(
+    () => deriveLadder(session, participants, gameId),
+    [session, participants, gameId],
+  );
   const [busy, setBusy] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [answers, setAnswers] = useState<PickedAnswer[]>([]);
@@ -61,7 +117,11 @@ export function LadderPanel({
     void Promise.all(
       view.presenters.map(async (p) => {
         const d = await repo.loadDesign(sessionId, p.uid).catch(() => null);
-        return { uid: p.uid, choice: d?.autopsyChoice ?? "", reason: d?.autopsyReason ?? "" };
+        return {
+          uid: p.uid,
+          choice: (d?.[def.choiceField] as string) ?? "",
+          reason: (d?.[def.reasonField] as string) ?? "",
+        };
       }),
     ).then((rows) => {
       if (alive) setAnswers(rows);
@@ -70,23 +130,20 @@ export function LadderPanel({
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealed, sessionId, view.presenters.map((p) => p.uid).join(",")]);
+  }, [revealed, sessionId, gameId, view.presenters.map((p) => p.uid).join(",")]);
 
-  const run = async (next: Parameters<typeof repo.setLadder>[1]) => {
+  const run = async (next: Parameters<typeof repo.setLadder>[2]) => {
     setBusy(true);
-    await repo.setLadder(sessionId, next).catch(() => {});
+    await repo.setLadder(sessionId, gameId, next).catch(() => {});
     setBusy(false);
   };
 
   const enough = view.seated.length >= 2;
 
   return (
-    <div className="rounded-lg border border-hairline bg-canvas p-5 sm:p-6">
+    <div className="mt-5 border-t border-hairline pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-tagline">
-          <Dices className="h-4 w-4 text-action" aria-hidden />
-          사다리타기 발표자 뽑기
-        </h3>
+        <p className="text-caption font-semibold text-ink">{def.tab}</p>
         <Badge tone={running ? "action" : view.status === "locked" ? "warn" : "neutral"}>
           {running ? "결과 공개" : view.status === "locked" ? "자리 마감" : "자리 선택 중"} · {view.round}회차
         </Badge>
@@ -180,7 +237,7 @@ export function LadderPanel({
           <ol className="mt-3 space-y-4">
             {view.presenters.map((p, i) => {
               const a = answers.find((x) => x.uid === p.uid);
-              const c = AUTOPSY_CASES.find((x) => x.key === a?.choice);
+              const c = def.options.find((x) => x.key === a?.choice);
               return (
                 <li key={p.uid} className="border-t border-hairline pt-3 first:border-0 first:pt-0">
                   <p className="text-body font-semibold text-ink">
@@ -197,7 +254,7 @@ export function LadderPanel({
             })}
           </ol>
           <p className="mt-4 text-caption text-ink-48">
-            두 분께 조금 전 선택과 그 이유를 물어봐 주세요.
+            {def.presenterAsk}
           </p>
         </div>
       )}

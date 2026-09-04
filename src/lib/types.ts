@@ -206,12 +206,11 @@ export interface Participant {
   currentStep: StepId;
   progress: Partial<Record<ActivityId, boolean>>;
   /**
-   * 사다리타기 — 참가 신청한 라운드. 강사가 초기화하면 round 가 올라가므로
+   * 사다리타기 — 판(START·2교시)마다 따로 기록한다.
+   * round 는 참가 신청한 라운드다. 강사가 초기화하면 round 가 올라가므로
    * 이 값이 현재 라운드와 다르면 자동으로 '참가하지 않음'이 된다(지울 필요가 없다).
    */
-  ladderRound?: number;
-  /** 상단에서 고른 자리. 아직 안 골랐으면 null */
-  ladderSeat?: number | null;
+  ladderSeats?: Partial<Record<LadderGameId, { round: number; seat: number | null }>>;
 }
 
 export interface WallComment {
@@ -254,6 +253,14 @@ export interface Reflection {
    그래야 강사 화면과 연수생 화면이 반드시 같은 사다리를 본다.
    ──────────────────────────────────────────────────────────────────────── */
 
+/**
+ * 사다리는 연수 중 두 번 돈다.
+ *  start    — START 수업 부검실. 첫 발언을 여는 자리.
+ *  question — 2교시 좋은 질문 판별. 흐름이 늘어지고 판단이 갈리는 지점.
+ * 둘은 완전히 독립이다. 앞판 결과가 남아 있어도 뒷판은 처음부터 시작한다.
+ */
+export type LadderGameId = "start" | "question";
+
 /** 가로줄 하나 — row 층에서 left 열과 left+1 열을 잇는다 */
 export interface LadderRung {
   row: number;
@@ -295,7 +302,8 @@ export const EMPTY_LADDER: LadderState = {
 };
 
 /** 자리 잠금은 pollResults map 안에 넣는다 — 보안 규칙을 손대지 않기 위한 선택 */
-export const ladderSeatKey = (round: number, seat: number) => `lad${round}_${seat}`;
+export const ladderSeatKey = (game: LadderGameId, round: number, seat: number) =>
+  `lad_${game}_${round}_${seat}`;
 
 export type PollKey = "A" | "B" | "C" | "D";
 export type TaskPollKey = "yes" | "notEnough";
@@ -316,8 +324,8 @@ export interface SessionDoc {
    */
   pollResults: Record<string, number>;
   taskPollResults: Record<TaskPollKey, number>;
-  /** 사다리타기 발표자 뽑기 — 없으면 아직 한 번도 시작하지 않은 것이다 */
-  ladder?: LadderState;
+  /** 사다리타기 발표자 뽑기 — 판별로 따로 담는다. 없으면 아직 시작 전이다 */
+  ladders?: Partial<Record<LadderGameId, LadderState>>;
 }
 
 /** 새로 추가된 선택형 활동들 */

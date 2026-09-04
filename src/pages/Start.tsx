@@ -65,7 +65,7 @@ export default function Start() {
                     선생님 두 분의 의견을 직접 들어보겠습니다.
                   </p>
                   {/* 두 분을 어떻게 고르는가 — 지목보다 사다리가 훨씬 편하게 말문을 연다 */}
-                  <LadderGame />
+                  <LadderGame gameId="start" />
                 </div>
                 <DiscussionTimer seconds={60} label="선택 이유 비교하기" />
               </>

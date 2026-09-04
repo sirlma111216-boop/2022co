@@ -17,6 +17,7 @@ import { DeleteChallenge } from "@/components/activity/DeleteChallenge";
 import { ChoicePoll } from "@/components/activity/ChoicePoll";
 import { SelfCheck } from "@/components/activity/SelfCheck";
 import { DiscussionTimer } from "@/components/activity/DiscussionTimer";
+import { LadderGame } from "@/components/activity/LadderGame";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ShareBar } from "@/components/wall/Wall";
 import { ReverseOrderGame } from "@/components/game/ReverseOrderGame";
@@ -352,6 +353,15 @@ export default function Session2() {
                     <strong>즉 A·B가 나쁜 질문이라는 뜻이 아니라, 서로 하는 일이 다르다는 뜻입니다.</strong>
                   </p>
                 </Block>
+                {/* 연수 중반, 판단이 가장 크게 갈리는 자리 — 여기서 한 번 더 말을 시킨다 */}
+                <div className="mt-4 rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
+                  <p className="text-body-sm leading-[1.7] text-ink">
+                    여기서 판단이 가장 크게 갈립니다.
+                    <br />
+                    선생님 두 분의 이유를 직접 들어보겠습니다.
+                  </p>
+                  <LadderGame gameId="question" />
+                </div>
                 <DiscussionTimer seconds={60} label="옆 선생님과 판단 비교하기" />
               </>
             }
