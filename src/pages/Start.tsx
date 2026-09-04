@@ -56,21 +56,23 @@ export default function Start() {
             choiceField="autopsyChoice"
             reasonField="autopsyReason"
             reasonPlaceholder="예: 활동은 좋은데 평가가 따로 놀아서요."
-            afterVote={
-              <>
-                <div className="rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
-                  <p className="text-body-sm leading-[1.7] text-ink">
-                    같은 수업을 보고도 판단은 갈릴 수 있습니다.
-                    <br />
-                    선생님 두 분의 의견을 직접 들어보겠습니다.
-                  </p>
-                  {/* 두 분을 어떻게 고르는가 — 지목보다 사다리가 훨씬 편하게 말문을 연다 */}
-                  <LadderGame gameId="start" />
-                </div>
-                <DiscussionTimer seconds={60} label="선택 이유 비교하기" />
-              </>
-            }
+            afterVote={<DiscussionTimer seconds={60} label="선택 이유 비교하기" />}
           />
+
+          {/*
+            투표 여부와 상관없이 항상 둔다.
+            afterVote 안에 두면 아직 안 고른 분에게는 컴포넌트가 아예 안 붙는다 —
+            사다리에 들어올 수도 없고, 강사가 결과를 열어도 그 화면에는 아무것도 안 뜬다.
+          */}
+          <div className="my-8 rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
+            <p className="text-body-sm leading-[1.7] text-ink">
+              같은 수업을 보고도 판단은 갈릴 수 있습니다.
+              <br />
+              선생님 두 분의 의견을 직접 들어보겠습니다.
+            </p>
+            {/* 두 분을 어떻게 고르는가 — 지목보다 사다리가 훨씬 편하게 말문을 연다 */}
+            <LadderGame gameId="start" />
+          </div>
 
           <PresenterTip>
             <p>분포를 읽어 주되 어느 쪽이 정답인지 말하지 마세요. 갈린 것 자체가 오늘의 출발점입니다.</p>

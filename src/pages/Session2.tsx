@@ -353,19 +353,21 @@ export default function Session2() {
                     <strong>즉 A·B가 나쁜 질문이라는 뜻이 아니라, 서로 하는 일이 다르다는 뜻입니다.</strong>
                   </p>
                 </Block>
-                {/* 연수 중반, 판단이 가장 크게 갈리는 자리 — 여기서 한 번 더 말을 시킨다 */}
-                <div className="mt-4 rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
-                  <p className="text-body-sm leading-[1.7] text-ink">
-                    여기서 판단이 가장 크게 갈립니다.
-                    <br />
-                    선생님 두 분의 이유를 직접 들어보겠습니다.
-                  </p>
-                  <LadderGame gameId="question" />
-                </div>
                 <DiscussionTimer seconds={60} label="옆 선생님과 판단 비교하기" />
               </>
             }
           />
+
+          {/* 연수 중반, 판단이 가장 크게 갈리는 자리 — 여기서 한 번 더 말을 시킨다.
+              START 과 마찬가지로 투표 여부와 무관하게 항상 붙여 둔다. */}
+          <div className="my-8 rounded-lg border-l-[3px] border-action bg-canvas-parchment px-5 py-4">
+            <p className="text-body-sm leading-[1.7] text-ink">
+              여기서 판단이 가장 크게 갈립니다.
+              <br />
+              선생님 두 분의 이유를 직접 들어보겠습니다.
+            </p>
+            <LadderGame gameId="question" />
+          </div>
 
           <Block kind="read" title="질문을 세 단계로 나누어 봅니다">
             <p>한 번에 좋은 질문을 만들기는 어렵습니다. 대신 세 단계로 나누어 만들면 훨씬 쉬워집니다.</p>
