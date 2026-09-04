@@ -13,6 +13,7 @@ import { AUTOPSY_CASES, ICEBREAK_OPTIONS, QUESTION_JUDGE_OPTIONS } from "@/conte
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session-context";
 import {
+  ACTIVITIES_WITH_WALL,
   ACTIVITY_LABEL,
   POLL_AUTOPSY,
   POLL_QUESTION,
@@ -24,7 +25,7 @@ import {
 } from "@/lib/types";
 import { cn, makeCode, normalizeCode, relativeTime } from "@/lib/utils";
 
-const ACTIVITIES: ActivityId[] = ["a1", "m1", "a2", "a3", "a4", "r1", "a5", "a6"];
+const ACTIVITIES: ActivityId[] = ["p0", "u0", "a1", "m1", "a2", "a3", "a4", "r1", "a5", "a6"];
 
 export default function Presenter() {
   const { setPresentMode, presentMode } = useSession();
@@ -241,13 +242,18 @@ export default function Presenter() {
                       <span className="tabular text-caption font-semibold text-ink">
                         {counts.per[a]} / {counts.total}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setWallOpen(a)}
-                        className="text-fine text-action"
-                      >
-                        담벼락 열기
-                      </button>
+                      {/* START 활동에는 공유 담벼락이 없다 — 빈 창이 열리지 않게 한다 */}
+                      {ACTIVITIES_WITH_WALL.includes(a) ? (
+                        <button
+                          type="button"
+                          onClick={() => setWallOpen(a)}
+                          className="text-fine text-action"
+                        >
+                          담벼락 열기
+                        </button>
+                      ) : (
+                        <span className="text-fine text-ink-48">담벼락 없음</span>
+                      )}
                     </div>
                     <Progress value={counts.per[a]} max={Math.max(1, counts.total)} />
                   </li>

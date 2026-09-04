@@ -10,9 +10,14 @@ export const STEPS: { id: StepId; label: string; short: string; path: string }[]
 ];
 
 /** 활동 식별자 — 담벼락·진행률 집계 키 */
-export type ActivityId = "a1" | "m1" | "a2" | "a3" | "a4" | "r1" | "a5" | "a6";
+export type ActivityId = "p0" | "u0" | "a1" | "m1" | "a2" | "a3" | "a4" | "r1" | "a5" | "a6";
+
+/** 담벼락(공유 카드)이 있는 활동만 — 강사 화면에서 '담벼락 열기'를 이 활동에만 보여 준다 */
+export const ACTIVITIES_WITH_WALL: ActivityId[] = ["a1", "a2", "a3", "a4", "a5", "a6"];
 
 export const ACTIVITY_LABEL: Record<ActivityId, string> = {
+  p0: "수업 부검실",
+  u0: "내 수업 기록",
   a1: "성취기준 해부하기",
   m1: "30% 삭제 도전",
   a2: "한 문장만 남는다면",

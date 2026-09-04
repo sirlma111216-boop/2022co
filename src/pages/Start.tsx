@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Block, PullQuote } from "@/components/teach/Block";
 import { PresenterTip } from "@/components/teach/elements";
 import { Bars, ChoiceList } from "@/components/poll/Poll";
@@ -8,12 +9,24 @@ import { Disclosure } from "@/components/ui/disclosure";
 import { PageNav } from "@/components/layout/PageParts";
 import { AUTOPSY_CASES, ICEBREAK_OPTIONS } from "@/content/examples";
 import { useSession } from "@/lib/session-context";
+import { isFilled } from "@/lib/utils";
 import { POLL_AUTOPSY, type PollKey } from "@/lib/types";
 
 export default function Start() {
-  const { session, votedPoll, castPoll, mode, design, profile, votes } = useSession();
+  const { session, votedPoll, castPoll, mode, design, profile, votes, markProgress } = useSession();
   const results = session?.pollResults ?? {};
   const chose = votes[POLL_AUTOPSY] || design.autopsyChoice;
+
+  // START 활동도 강사 화면의 「활동별 작성 현황」에 잡히게 한다.
+  // 이 두 가지는 ActivityCard 를 쓰지 않아 지금까지 집계에서 통째로 빠져 있었다.
+  const autopsyDone = !!chose && isFilled(design.autopsyReason);
+  const unitDone = isFilled(design.unitName) && isFilled(design.initialActivity);
+  useEffect(() => {
+    if (autopsyDone) markProgress("p0");
+  }, [autopsyDone, markProgress]);
+  useEffect(() => {
+    if (unitDone) markProgress("u0");
+  }, [unitDone, markProgress]);
 
   const icebreakData = ICEBREAK_OPTIONS.map((o) => ({
     key: o.key,
