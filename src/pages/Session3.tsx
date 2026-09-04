@@ -23,7 +23,7 @@ import {
 } from "@/content/examples";
 import { useSession } from "@/lib/session-context";
 import { cn, isFilled } from "@/lib/utils";
-import type { DesignField } from "@/lib/types";
+import { RED_TEAM_CHECKS, type DesignField } from "@/lib/types";
 
 const SECTIONS = [
   { id: "s3-intro", label: "되돌아보기" },
@@ -431,6 +431,21 @@ export default function Session3() {
               좋은 수행과제인지 확인하는 가장 빠른 방법은 <strong>반대로 공격해 보는 것</strong>입니다.
               지금부터는 내 과제를 만든 사람이 아니라, 그 과제를 뚫으려는 학생의 입장에서 봅니다.
             </>
+          }
+          footer={
+            <ShareBar
+              activityId="r1"
+              canShare={r1done}
+              hint="구멍을 하나라도 표시하거나 수정 후 과제를 적으면 공유할 수 있습니다."
+              content={() => ({
+                "수정 전 과제": design.performanceTaskBefore,
+                "찾은 구멍": (design.redTeamFindings ?? [])
+                  .map((id) => RED_TEAM_CHECKS.find((c) => c.id === id)?.question ?? id)
+                  .join(" / "),
+                "어떻게 뚫리는가": design.redTeamComment,
+                "수정 후 과제": design.performanceTaskAfter,
+              })}
+            />
           }
         >
           <RedTeam />

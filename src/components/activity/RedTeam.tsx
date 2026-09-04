@@ -226,13 +226,13 @@ export function RedTeam() {
         </div>
       )}
 
-      {/* 동료 과제 공격하기 — 기존 담벼락 재사용 */}
+      {/* 동료 과제 공격하기 — ACTIVITY 4 에 공유된 과제를 본다 */}
       <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
         <Button variant="ghost" size="sm" onClick={() => setWallOpen(true)}>
           <Users className="h-4 w-4" /> 동료의 과제도 공격해 보기
         </Button>
         <span className="text-fine text-ink-48">
-          담벼락에서 다른 선생님의 과제를 골라, 댓글로 구멍을 하나 알려 주세요.
+          ACTIVITY 4 담벼락에서 다른 선생님의 과제를 골라, 댓글로 구멍을 하나 알려 주세요.
         </span>
       </div>
       <WallDialog activityId="a4" open={wallOpen} onOpenChange={setWallOpen} />
