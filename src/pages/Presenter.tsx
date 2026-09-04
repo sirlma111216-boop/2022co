@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Bars } from "@/components/poll/Poll";
 import { WallDialog } from "@/components/wall/Wall";
 import { LadderPanel } from "@/components/teach/LadderPanel";
+import { MusicToggle } from "@/components/teach/MusicToggle";
 import { TIMELINE } from "@/content/timeline";
 import { MUST_SAY } from "@/content/mustSay";
 import { AUTOPSY_CASES, ICEBREAK_OPTIONS, QUESTION_JUDGE_OPTIONS } from "@/content/examples";
@@ -153,6 +154,8 @@ export default function Presenter() {
         <h1 className="text-tagline">강사 대시보드</h1>
         {repo.mode === "local" && <Badge tone="warn">로컬 모드 — 실시간 집계 없음</Badge>}
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* 배경음악 — 강사 화면에만 있다. 음원은 배포에 없고 강사 노트북에서 연다. */}
+          <MusicToggle />
           <Button
             variant={presentMode ? "dark" : "pearl"}
             size="sm"
