@@ -6,7 +6,9 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Disclosure } from "@/components/ui/disclosure";
 import { SectionHeading } from "@/components/teach/elements";
 import { Block } from "@/components/teach/Block";
+import { MustSay } from "@/components/teach/MustSay";
 import { BeforeAfter } from "@/components/activity/RedTeam";
+import { FloatingNotes } from "@/components/activity/FloatingNotes";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session-context";
 import type { Reflection } from "@/lib/types";
@@ -54,7 +56,8 @@ export default function Reflect() {
   const [form, setForm] = useState<DraftForm>(EMPTY_FORM);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [freeEdit, setFreeEdit] = useState(false);
+  // 기본은 자유 서술. 틀은 막힐 때 꺼내 쓰는 보조 장치일 뿐이다.
+  const [useTemplate, setUseTemplate] = useState(false);
   const [all, setAll] = useState<Reflection[]>([]);
 
   useEffect(() => {
@@ -67,7 +70,7 @@ export default function Reflect() {
   const set = (patch: Partial<DraftForm>) => {
     const next = { ...form, ...patch };
     // 문장 틀을 쓰는 동안에는 조각에서 한 문장을 자동으로 만든다.
-    if (!freeEdit && ("sentA" in patch || "sentB" in patch)) {
+    if (useTemplate && ("sentA" in patch || "sentB" in patch)) {
       next.oneSentence =
         next.sentA || next.sentB
           ? `오늘 나는 수업 설계에서 ${next.sentA || "○○"}보다 ${next.sentB || "○○"}${objectParticle(next.sentB || "○○")} 먼저 생각해 보려고 한다.`
@@ -98,7 +101,20 @@ export default function Reflect() {
 
   const stops = useMemo(() => all.filter((r) => r.stopDoing?.trim()), [all]);
   const starts = useMemo(() => all.filter((r) => r.startDoing?.trim()), [all]);
-  const sentences = useMemo(() => all.filter((r) => r.oneSentence?.trim()), [all]);
+  const notes = useMemo(
+    () =>
+      all
+        .filter((r) => r.oneSentence?.trim())
+        .sort((a, b) => b.createdAt - a.createdAt)
+        // 색은 uid 에서 뽑아 사람마다 고정하되, 화면에는 이름을 쓰지 않는다
+        .map((r) => ({
+          id: r.uid,
+          text: r.oneSentence.trim(),
+          nick: r.uid,
+          who: `익명 · ${relativeTime(r.createdAt)}`,
+        })),
+    [all],
+  );
   const keyElement = design.assessmentElements[design.keyAssessmentIndex ?? 0];
   const experiences = (design.learningExperiences ?? []).filter((e) => e.what.trim());
 
@@ -253,14 +269,41 @@ export default function Reflect() {
 
           {/* ── 한 문장 ─────────────────────────────────────── */}
           <div className="mt-8 rounded-lg border border-action/35 bg-canvas px-5 py-5">
-            <Label>오늘의 연수를 한 문장으로 남긴다면?</Label>
+            <Label htmlFor="oneSentence">오늘의 연수를 한 문장으로 남긴다면?</Label>
             <p className="mt-1 text-caption text-ink-48">
-              이 문장만 익명으로 함께 보여집니다. 나머지 답변은 공유되지 않습니다.
+              정해진 형식은 없습니다. 오늘 느낀 그대로 자유롭게 적어 주세요. 이 문장만 익명으로 함께
+              보여집니다. 나머지 답변은 공유되지 않습니다.
             </p>
 
-            {!freeEdit ? (
-              <>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-body-sm text-ink">
+            <Textarea
+              id="oneSentence"
+              className="mt-4"
+              rows={3}
+              value={form.oneSentence}
+              onChange={(e) => set({ oneSentence: e.target.value })}
+              placeholder="오늘 나에게 남은 생각을 그대로 적어 주세요"
+              maxLength={160}
+            />
+
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <p className="text-fine text-ink-48">{form.oneSentence.length}/160</p>
+              <button
+                type="button"
+                onClick={() => setUseTemplate((v) => !v)}
+                className="text-fine text-action underline underline-offset-2"
+              >
+                {useTemplate ? "문장 틀 접기" : "막막하다면 문장 틀 쓰기"}
+              </button>
+            </div>
+
+            {/* 틀은 어디까지나 시동을 거는 장치다 — 여기서 만든 문장도 위에서 그대로 고칠 수 있다 */}
+            {useTemplate && (
+              <div className="mt-4 rounded-lg bg-canvas-parchment px-4 py-4">
+                <p className="text-fine text-ink-48">
+                  빈칸을 채우면 위 칸에 문장이 만들어집니다. 그대로 두어도 되고, 위에서 마음대로 고쳐
+                  써도 됩니다.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-body-sm text-ink">
                   <span>오늘 나는 수업 설계에서</span>
                   <Input
                     aria-label="덜 먼저 생각할 것"
@@ -281,28 +324,7 @@ export default function Reflect() {
                   />
                   <span>{objectParticle(form.sentB)} 먼저 생각해 보려고 한다.</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFreeEdit(true)}
-                  className="mt-3 text-fine text-action underline underline-offset-2"
-                >
-                  문장을 직접 고쳐 쓰기
-                </button>
-              </>
-            ) : (
-              <Input
-                className="mt-4"
-                value={form.oneSentence}
-                onChange={(e) => set({ oneSentence: e.target.value })}
-                placeholder="오늘의 연수를 한 문장으로"
-                maxLength={90}
-              />
-            )}
-
-            {form.oneSentence && !freeEdit && (
-              <p className="mt-3 rounded-md bg-canvas-parchment px-4 py-3 text-body-sm text-ink">
-                {form.oneSentence}
-              </p>
+              </div>
             )}
           </div>
 
@@ -355,25 +377,11 @@ export default function Reflect() {
             />
           </div>
 
-          {sentences.length > 0 && (
-            <div className="mt-10">
-              <p className="mb-4 text-caption font-semibold text-ink-48">오늘 우리가 남긴 문장들</p>
-              <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-                {sentences
-                  .slice()
-                  .sort((a, b) => b.createdAt - a.createdAt)
-                  .map((r) => (
-                    <blockquote
-                      key={r.uid}
-                      className="break-inside-avoid rounded-lg border border-hairline bg-canvas px-5 py-4"
-                    >
-                      <p className="text-body-sm leading-[1.65] text-ink">"{r.oneSentence}"</p>
-                      <p className="mt-2 text-fine text-ink-48">익명 · {relativeTime(r.createdAt)}</p>
-                    </blockquote>
-                  ))}
-              </div>
-            </div>
-          )}
+          {/*
+            남긴 문장은 좌우 여백으로 흘려 보낸다. 넓은 화면에서만 흐르고,
+            좁은 화면·인쇄에서는 컴포넌트가 알아서 목록으로 바꾼다.
+          */}
+          <FloatingNotes notes={notes} excludeId={uid ?? undefined} flatTitle="오늘 우리가 남긴 문장들" />
         </div>
       </section>
 
@@ -384,6 +392,13 @@ export default function Reflect() {
             좋은 활동을 버리자는 것이 아닙니다. 무엇을 남길지 먼저 정하고, 그것을 증명할 수 있을 때 좋은
             활동은 더 좋은 수업이 됩니다.
           </p>
+        </div>
+      </section>
+
+      {/* 강사용 — 위 문장을 반드시 소리 내어 읽게 한다 */}
+      <section className="bg-canvas pt-10">
+        <div className="reading">
+          <MustSay id="closing" className="my-0" />
         </div>
       </section>
 

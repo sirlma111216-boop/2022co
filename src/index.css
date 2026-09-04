@@ -210,3 +210,113 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   흐르는 포스트잇 벽 — 마지막 성찰 「한 문장」
+   본문(content-w 980px)을 절대 가리지 않는다. 양옆에 자리가 남을 때만 켜진다.
+   ========================================================================== */
+.notes-wall {
+  position: fixed;
+  inset: 9rem 0 5rem;
+  z-index: 0;
+  overflow: hidden;
+  /* 벽이 화면을 덮으므로 클릭을 먹지 않는다. 쪽지만 받는다. */
+  pointer-events: none;
+  display: none;
+}
+
+/* 본문 980 + 좌우 여백 + 기둥 두 개가 들어갈 때만 */
+@media (min-width: 1400px) {
+  .notes-wall {
+    display: block;
+  }
+  .notes-flat {
+    display: none;
+  }
+}
+
+.nw-col {
+  position: absolute;
+  top: 0;
+  width: clamp(10rem, calc((100vw - 1020px) / 2 - 2rem), 16rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  will-change: transform;
+}
+.nw-col:first-child {
+  left: 1.5rem;
+}
+.nw-col:last-child {
+  right: 1.5rem;
+}
+
+/* 같은 묶음을 두 번 넣고 절반만 움직인다 → 이음매가 원점과 겹쳐 빈 구간이 없다 */
+.nw-up {
+  animation: nwUp linear infinite;
+}
+.nw-down {
+  animation: nwDown linear infinite;
+}
+@keyframes nwUp {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+@keyframes nwDown {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 읽으려는 순간 지나가면 기능이 성립하지 않는다 */
+.notes-wall:hover .nw-col {
+  animation-play-state: paused;
+}
+
+.note-card {
+  pointer-events: auto;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 10px rgba(29, 28, 25, 0.08);
+  color: #1d1c19;
+}
+.note-card .nc-text {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.note-card .nc-who {
+  margin-top: 0.35rem;
+  text-align: right;
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+/* 닉네임에서 뽑은 여섯 색 — 같은 사람은 늘 같은 색이 된다 */
+.note-card.tint-0 { background: #fdf0c4; }
+.note-card.tint-1 { background: #d6ecd8; }
+.note-card.tint-2 { background: #fad7d2; }
+.note-card.tint-3 { background: #d8e6f8; }
+.note-card.tint-4 { background: #e6dcf4; }
+.note-card.tint-5 { background: #fbe3c6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nw-col {
+    animation: none;
+  }
+}
+@media print {
+  .notes-wall {
+    display: none !important;
+  }
+}

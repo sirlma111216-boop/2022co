@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { MustSay } from "@/components/teach/MustSay";
 import { Block, PullQuote } from "@/components/teach/Block";
 import { PresenterTip } from "@/components/teach/elements";
 import { Bars, ChoiceList } from "@/components/poll/Poll";
@@ -89,6 +90,13 @@ export default function Start() {
               <p className="mx-auto mt-6 max-w-[30ch] text-[1.5rem] font-semibold leading-[1.45] tracking-[-0.018em] text-white sm:text-[1.75rem]">
                 학생이 무엇을 배우고 있는지가 보이는 수업과 그렇지 않은 수업을 구분하는 방법입니다.
               </p>
+            </div>
+          </section>
+
+          {/* 강사용 — 위 두 문장을 반드시 소리 내어 읽게 한다 */}
+          <section className="bg-canvas pt-10">
+            <div className="reading">
+              <MustSay id="autopsy-frame" className="my-0" />
             </div>
           </section>
 

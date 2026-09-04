@@ -1,3 +1,4 @@
+import { MustSay } from "@/components/teach/MustSay";
 import { Block, PullQuote } from "@/components/teach/Block";
 import {
   CompareCards,
@@ -127,6 +128,8 @@ export default function Session2() {
             </p>
           </Block>
 
+          <MustSay id="narrow-is-teachers-job" />
+
           <TermCard id="key-idea" />
 
           <PresenterTip>
@@ -148,6 +151,25 @@ export default function Session2() {
               <strong>무엇을 과감히 덜어낼지</strong> 결정해야 할 때가 있습니다. 여기서 덜어낸 만큼 남은
               것이 선명해집니다.
             </>
+          }
+          footer={
+            <ShareBar
+              activityId="m1"
+              canShare={isFilled(design.commonThread)}
+              hint="공통으로 흐르는 생각을 한 줄 적으면 공유할 수 있습니다."
+              content={() => ({
+                "끝까지 남긴 것": (design.unitItems ?? [])
+                  .filter((i) => !i.dropped)
+                  .map((i) => i.text)
+                  .join(" · "),
+                "덜 다루기로 한 것": (design.unitItems ?? [])
+                  .filter((i) => i.dropped)
+                  .map((i) => i.text)
+                  .join(" · "),
+                "남긴 이유": design.retainReason,
+                "공통으로 흐르는 생각": design.commonThread,
+              })}
+            />
           }
         >
           <div id="s2-delete" className="scroll-mt-32">
@@ -539,7 +561,7 @@ export default function Session2() {
             )}
           </div>
 
-          <PullQuote>목표 → 평가 → 수업</PullQuote>
+          <MustSay id="goal-evidence-lesson" />
 
           <PresenterTip>
             <p>전체가 맞힐 때까지 기다리지 마세요. 두세 분이 성공하면 정답을 함께 확인합니다.</p>

@@ -1,3 +1,4 @@
+import { MustSay } from "@/components/teach/MustSay";
 import { Block, PullQuote } from "@/components/teach/Block";
 import { Misconception, Note, PresenterTip, SectionHeading } from "@/components/teach/elements";
 import { TermCard, TermChip } from "@/components/teach/TermCard";
@@ -153,6 +154,8 @@ export default function Session3() {
           </ol>
 
           <PullQuote tone="dark">목표 → 평가 → 수업</PullQuote>
+
+          <MustSay id="not-test-first" />
 
           <Misconception
             wrong="백워드 설계 = 시험 문제부터 만드는 것"
@@ -310,6 +313,8 @@ export default function Session3() {
               답이 나온다면 좋은 과제입니다.
             </p>
           </Misconception>
+
+          <MustSay id="context-is-not-quality" />
 
           <TermCard id="grasps" />
         </section>

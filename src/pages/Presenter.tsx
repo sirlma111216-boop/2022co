@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Bars } from "@/components/poll/Poll";
 import { WallDialog } from "@/components/wall/Wall";
 import { TIMELINE } from "@/content/timeline";
+import { MUST_SAY } from "@/content/mustSay";
 import { AUTOPSY_CASES, ICEBREAK_OPTIONS, QUESTION_JUDGE_OPTIONS } from "@/content/examples";
 import { repo } from "@/lib/repo";
 import { useSession } from "@/lib/session-context";
@@ -332,6 +333,26 @@ export default function Presenter() {
 
           {/* 타임라인 + 진행 팁 */}
           <aside className="space-y-6">
+            <Panel title="반드시 짚고 갈 문장" sub="이 여덟 개만은 빼지 마세요">
+              <ol className="space-y-4">
+                {MUST_SAY.map((m, i) => (
+                  <li key={m.id} className="border-l-[3px] border-[#c0392b] pl-3">
+                    <p className="flex flex-wrap items-baseline gap-2">
+                      <span className="tabular text-fine font-semibold text-[#c0392b]">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="rounded-pill bg-canvas-parchment px-2 py-0.5 text-fine text-ink-48">
+                        {m.step}
+                      </span>
+                      <span className="text-fine text-ink-48">{m.where}</span>
+                    </p>
+                    <p className="mt-1.5 text-caption font-semibold leading-[1.6] text-ink">{m.text}</p>
+                    <p className="mt-1 text-fine leading-[1.55] text-ink-48">{m.why}</p>
+                  </li>
+                ))}
+              </ol>
+            </Panel>
+
             <Panel title="150분 타임라인" sub="교수자 진행 팁 포함">
               <div className="space-y-6">
                 {TIMELINE.map((p) => (

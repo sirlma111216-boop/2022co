@@ -1,3 +1,4 @@
+import { MustSay } from "@/components/teach/MustSay";
 import { Block, PullQuote } from "@/components/teach/Block";
 import {
   CompareCards,
@@ -101,7 +102,7 @@ export default function Session1() {
             </ol>
           </Block>
 
-          <PullQuote>많이 가르치는 것이 깊이 있는 학습은 아닙니다.</PullQuote>
+          <MustSay id="less-is-deeper" />
 
           <Block kind="teacher">
             <p>
@@ -197,6 +198,8 @@ export default function Session1() {
               봐야 하는지 말해 주고 있으니까요.
             </p>
           </Block>
+
+          <MustSay id="standard-is-destination" />
 
           <TermCard id="standard" />
         </section>
