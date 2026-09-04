@@ -50,6 +50,15 @@ export interface SessionState {
    */
   votes: Record<string, string>;
   castVote: (pollId: string, option: string) => Promise<void>;
+
+  /**
+   * 강사 전용 「강의 예시 교과」. 값이 있으면 이 브라우저의 모든 예시가 그 교과로 보인다.
+   * 이 브라우저에만 저장되므로 연수생 화면에는 영향이 없다.
+   */
+  lectureSubject: string;
+  setLectureSubject: (subject: string) => void;
+  /** 교과만 바꾼다 — 작성한 내용은 건드리지 않는다 */
+  setSubject: (subject: string) => Promise<void>;
 }
 
 export const SessionContext = createContext<SessionState>({
@@ -75,6 +84,9 @@ export const SessionContext = createContext<SessionState>({
   castTaskPoll: async () => {},
   votes: {},
   castVote: async () => {},
+  lectureSubject: "",
+  setLectureSubject: () => {},
+  setSubject: async () => {},
 });
 
 export function useSession() {

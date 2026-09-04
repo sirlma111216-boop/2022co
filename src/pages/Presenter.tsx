@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import type { User } from "firebase/auth";
 import { ArrowLeft, LogIn, LogOut, Play, Presentation, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, Select } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Bars } from "@/components/poll/Poll";
 import { WallDialog } from "@/components/wall/Wall";
 import { LadderPanel } from "@/components/teach/LadderPanel";
+import { SUBJECT_CHOICES, getSubjectLabel } from "@/lib/subject";
 import { MusicToggle } from "@/components/teach/MusicToggle";
 import { TIMELINE } from "@/content/timeline";
 import { MUST_SAY } from "@/content/mustSay";
@@ -31,7 +32,7 @@ import { cn, makeCode, normalizeCode, relativeTime } from "@/lib/utils";
 const ACTIVITIES: ActivityId[] = ["p0", "u0", "a1", "m1", "a2", "a3", "a4", "r1", "a5", "a6"];
 
 export default function Presenter() {
-  const { setPresentMode, presentMode } = useSession();
+  const { setPresentMode, presentMode, lectureSubject, setLectureSubject } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [isInstructor, setIsInstructor] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -211,6 +212,31 @@ export default function Presenter() {
         </div>
       </section>
 
+      {/* 프로젝터에 띄울 예시 교과 — 이 브라우저에만 저장되고 연수생 화면은 각자 자기 교과를 본다 */}
+      <section className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-hairline bg-canvas px-5 py-4">
+        <label htmlFor="lectureSubject" className="text-caption font-semibold text-ink">
+          강의 예시 교과
+        </label>
+        <Select
+          id="lectureSubject"
+          className="w-auto min-w-[10rem]"
+          value={lectureSubject}
+          onChange={(e) => setLectureSubject(e.target.value)}
+        >
+          <option value="">연수생 각자 교과 (기본)</option>
+          {SUBJECT_CHOICES.map((s) => (
+            <option key={s.id} value={s.name}>
+              {s.name}
+            </option>
+          ))}
+        </Select>
+        <p className="text-fine text-ink-48">
+          {lectureSubject
+            ? `이 브라우저의 강의 화면은 「${getSubjectLabel(lectureSubject)}」 예시로 보입니다. 연수생 화면은 각자 고른 교과 그대로입니다.`
+            : "특정 교과 사례를 프로젝터에 띄우고 싶을 때 고르세요."}
+        </p>
+      </section>
+
       {!watching ? (
         <Center>세션 코드를 입력하고 [이 세션 열기]를 눌러 주세요.</Center>
       ) : (
@@ -324,9 +350,8 @@ export default function Presenter() {
                         className="flex items-baseline gap-2 rounded-md border border-hairline px-3 py-2"
                       >
                         <span className="text-body-sm text-ink">{p.nickname}</span>
-                        <span className="text-fine text-ink-48">
-                          {[p.schoolLevel, p.subject].filter(Boolean).join(" · ")}
-                        </span>
+                        <Badge tone="action">{getSubjectLabel(p.subject)}</Badge>
+                        <span className="text-fine text-ink-48">{p.schoolLevel}</span>
                         <span className="tabular ml-auto text-fine text-ink-48">
                           {Object.values(p.progress ?? {}).filter(Boolean).length}/6 ·{" "}
                           {relativeTime(p.joinedAt)}

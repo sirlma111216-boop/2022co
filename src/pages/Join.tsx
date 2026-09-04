@@ -4,7 +4,9 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { useSession } from "@/lib/session-context";
-import { SCHOOL_LEVELS, SUBJECTS } from "@/lib/types";
+import { SCHOOL_LEVELS } from "@/lib/types";
+import { SUBJECT_CHOICES } from "@/lib/subject";
+import { cn } from "@/lib/utils";
 import { normalizeCode } from "@/lib/utils";
 
 /**
@@ -43,13 +45,18 @@ export default function Join() {
 
   const [code, setCode] = useState("DEMO");
   const [nickname, setNickname] = useState("");
-  const [subject, setSubject] = useState("과학");
+  // 기본값을 과학으로 두지 않는다. 고르지 않으면 시작할 수 없다.
+  const [subject, setSubject] = useState("");
   const [schoolLevel, setSchoolLevel] = useState("중학교");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!subject) {
+      setError("담당 교과를 선택해 주세요. 이후 예시가 그 교과로 바뀝니다.");
+      return;
+    }
     if (!nickname.trim()) {
       setError("닉네임을 입력해 주세요.");
       return;
@@ -166,27 +173,43 @@ export default function Join() {
               <p className="text-fine text-ink-48">실명 대신 편한 별명을 적어 주세요.</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="subject">교과</Label>
-                <Select id="subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
-                  {SUBJECTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
+            {/* 교과는 이후 150분 동안 보게 될 모든 예시를 결정한다 — 눈에 띄게 고르게 한다 */}
+            <div className="space-y-2">
+              <Label>
+                담당 교과를 선택해 주세요 <span className="text-action">필수</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {SUBJECT_CHOICES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSubject(s.name)}
+                    aria-pressed={subject === s.name}
+                    className={cn(
+                      "rounded-md border px-3 py-2.5 text-body-sm transition-transform active:scale-[0.97]",
+                      subject === s.name
+                        ? "border-action bg-action text-white"
+                        : "border-hairline bg-canvas text-ink-80 hover:border-action hover:text-action",
+                    )}
+                  >
+                    {s.name}
+                  </button>
+                ))}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="level">학교급</Label>
-                <Select id="level" value={schoolLevel} onChange={(e) => setSchoolLevel(e.target.value)}>
-                  {SCHOOL_LEVELS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <p className="text-fine text-ink-48">
+                이후 화면의 모든 예시가 선택하신 교과로 바뀝니다. 나중에 상단에서 바꿀 수 있습니다.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="level">학교급</Label>
+              <Select id="level" value={schoolLevel} onChange={(e) => setSchoolLevel(e.target.value)}>
+                {SCHOOL_LEVELS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </Select>
             </div>
 
             {error && <p className="text-caption text-bad">{error}</p>}

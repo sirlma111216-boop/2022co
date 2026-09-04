@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "verify:ladder": "node --experimental-strip-types scripts/verify-ladder.mjs"
+    "verify:ladder": "node --experimental-strip-types scripts/verify-ladder.mjs",
+    "verify:subjects": "node --experimental-strip-types scripts/verify-subjects.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Plus, Scissors, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useSession } from "@/lib/session-context";
+import { useSubjectExample } from "@/lib/subject";
 import type { UnitItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const SUGGEST_MIN = 6;
  * 드래그앤드롭 대신 탭 이동을 쓴다 — 연수생 절반이 휴대폰으로 참여한다.
  */
 export function DeleteChallenge() {
+  const ex = useSubjectExample();
   const { design, update } = useSession();
   const items = design.unitItems ?? [];
   const [draft, setDraft] = useState("");
@@ -65,7 +67,7 @@ export function DeleteChallenge() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
-            placeholder="예: 알짜힘 구하기"
+            placeholder={`예: ${ex.deleteChallenge[0]}`}
             maxLength={40}
           />
           <Button variant="pearl" size="sm" onClick={add} className="shrink-0" disabled={!draft.trim()}>

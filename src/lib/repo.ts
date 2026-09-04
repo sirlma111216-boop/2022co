@@ -88,6 +88,8 @@ export interface Repo {
   saveReflection(sessionId: string, uid: string, r: Omit<Reflection, "uid" | "createdAt">): Promise<void>;
   watchReflections(sessionId: string, cb: (r: Reflection[]) => void): Unsub;
   watchParticipants(sessionId: string, cb: (p: Participant[]) => void): Unsub;
+  /** 교과만 바꾼다 — 설계안은 건드리지 않는다 */
+  updateProfileSubject(sessionId: string, uid: string, subject: string): Promise<void>;
   // ── 사다리타기 발표자 뽑기 ────────────────────────────────────
   /** 이번 라운드에 참가 신청 (자기 참가자 문서에만 쓴다) */
   joinLadder(sessionId: string, uid: string, game: LadderGameId, round: number): Promise<void>;
@@ -335,6 +337,12 @@ const localRepo: Repo = {
     const push = () => cb(read<Reflection[]>(key, []));
     push();
     return subscribe(key, push);
+  },
+
+  async updateProfileSubject(sessionId, uid, subject) {
+    const pkey = LS.participants(sessionId);
+    const list = read<Participant[]>(pkey, []);
+    write(pkey, list.map((p) => (p.uid === uid ? { ...p, subject } : p)));
   },
 
   async joinLadder(sessionId, uid, game, round) {
@@ -644,6 +652,14 @@ const fsRepo: Repo = {
           }),
         ),
       () => cb([]),
+    );
+  },
+
+  async updateProfileSubject(sessionId, uid, subject) {
+    await setDoc(
+      doc(participantsCol(sessionId), uid),
+      { subject, lastSeenAt: serverTimestamp() },
+      { merge: true },
     );
   },
 

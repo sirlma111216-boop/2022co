@@ -15,7 +15,7 @@ import { ActivityCard } from "@/components/activity/ActivityCard";
 import { AutoField } from "@/components/activity/AutoField";
 import { AiCoach } from "@/components/activity/AiCoach";
 import { ShareBar } from "@/components/wall/Wall";
-import { DIMENSION_CAUTION, LIGHT_STANDARD } from "@/content/examples";
+import { useSubjectExample } from "@/lib/subject";
 import { useSession } from "@/lib/session-context";
 import { isFilled } from "@/lib/utils";
 
@@ -31,6 +31,8 @@ const SECTIONS = [
 
 export default function Session1() {
   const { design } = useSession();
+  // 이론은 그대로 두고 사례만 선택 교과로 갈아 끼운다
+  const ex = useSubjectExample();
   // 완료 판정은 「썼는가」만 본다. 길이로 막으면 간결하게 쓴 사람이 손해를 본다.
   const done =
     isFilled(design.achievementStandard) &&
@@ -124,16 +126,9 @@ export default function Session1() {
 
           <TermCard id="deep-learning" />
 
-          <Block kind="science" title="굴절 단원으로 보면">
-            <p>
-              굴절을 다룰 때 물속의 젓가락, 신기루, 렌즈, 물고기의 위치를 각각 따로 설명하면 학생은 네 개의
-              사례를 외웁니다. 시험이 끝나면 네 개 다 사라집니다.
-            </p>
-            <p>
-              대신 "빛이 다른 매질로 들어갈 때 속력이 달라져 경로가 꺾인다"는 하나의 생각으로 네 현상을 모두
-              설명해 보게 하면, 학생은 다섯 번째 현상을 만났을 때도 설명해 낼 수 있습니다. 그때 우리는 조금 더
-              깊은 이해가 일어났다고 봅니다.
-            </p>
+          <Block kind="science" title={ex.deep.title}>
+            <p>{ex.deep.shallow}</p>
+            <p>{ex.deep.deep}</p>
           </Block>
 
           <PullQuote tone="dark">
@@ -178,20 +173,17 @@ export default function Session1() {
           </Block>
 
           <StandardDissect
-            code={LIGHT_STANDARD.code}
-            segments={LIGHT_STANDARD.segments}
-            notes={LIGHT_STANDARD.notes}
+            code={ex.standard.code}
+            segments={ex.standard.segments}
+            notes={ex.standard.notes}
           />
 
           <Block kind="teacher">
             <p>
-              앞부분 "빛의 반사와 굴절의 원리를 이해하고"는 <strong>알아야 할 것</strong>입니다. 뒷부분
-              "빛의 경로를 이용하여 표현할 수 있다"는 <strong>할 수 있어야 할 것</strong>이고요.
+              {ex.standard.reading.front} {ex.standard.reading.back}
             </p>
             <p>
-              여기서 중요한 것은 뒷부분입니다. 이 성취기준은 "반사 법칙을 안다"로 끝나지 않습니다. 학생이
-              직접 <strong>빛의 경로를 그려서</strong> 물체를 보는 과정을 설명해야 도달한 것입니다. 그렇다면
-              평가에도 광선을 그리는 장면이 반드시 있어야 하겠지요.
+              여기서 중요한 것은 뒷부분입니다. {ex.standard.reading.therefore}
             </p>
             <p>
               성취기준을 이렇게 읽으면, 평가 문항을 따로 고민할 필요가 줄어듭니다. 성취기준이 이미 무엇을
@@ -218,19 +210,19 @@ export default function Session1() {
                 t: "지식·이해",
                 q: "무엇을 알아야 하는가",
                 d: "개념·원리·사실, 그리고 개념 사이의 관계",
-                e: "반사 법칙, 굴절이 일어나는 조건, 본다는 것은 빛이 눈에 들어오는 일이라는 것",
+                e: ex.standard.dims.k,
               },
               {
                 t: "과정·기능",
                 q: "무엇을 할 수 있어야 하는가",
                 d: "그 지식을 가지고 실제로 해내는 교과 고유의 사고",
-                e: "광선 다이어그램으로 표현하기, 변인을 통제해 실험 설계하기, 자료에서 규칙 찾기",
+                e: ex.standard.dims.p,
               },
               {
                 t: "가치·태도",
                 q: "어떤 태도로 대하는가",
                 d: "그 교과를 하는 사람의 마음가짐과 참여 방식",
-                e: "증거 없이 단정하지 않기, 자료를 보고 자기 생각을 바꾸기, 안전하게 실험하기",
+                e: ex.standard.dims.v,
               },
             ].map((c) => (
               <div key={c.t} className="rounded-lg border border-hairline bg-canvas px-5 py-5">
@@ -292,7 +284,13 @@ export default function Session1() {
           </Block>
 
           <div className="my-7 space-y-4">
-            {DIMENSION_CAUTION.map((c, i) => (
+            {[
+              {
+                standard: ex.standard.segments.map((s) => s.text).join(""),
+                has: "지식·이해 ○ / 과정·기능 ○ / 가치·태도 ✕",
+                comment: ex.standard.notes.v,
+              },
+            ].map((c, i) => (
               <div key={i} className="rounded-lg border border-hairline bg-canvas px-5 py-4">
                 <p className="text-body-sm text-ink">{c.standard}</p>
                 <p className="mt-2 text-caption font-semibold text-action">{c.has}</p>
@@ -349,7 +347,7 @@ export default function Session1() {
             field="unitName"
             label="단원명"
             single
-            placeholder="예: 중2 과학 · 빛과 파동"
+            placeholder={`예: ${ex.name} · ${ex.unit}`}
             help="교과서 단원명 그대로도 좋고, 선생님이 부르시는 이름도 좋습니다."
           />
 
@@ -357,7 +355,7 @@ export default function Session1() {
             field="achievementStandard"
             label="성취기준"
             rows={3}
-            placeholder="예: [9과10-01] 빛의 반사와 굴절의 원리를 이해하고, 물체를 보는 과정을 빛의 경로를 이용하여 표현할 수 있다."
+            placeholder={ex.standard.placeholder}
             help="코드와 문장을 함께 적어 주세요. 문장을 그대로 옮기는 것이 중요합니다."
           />
 
@@ -368,7 +366,7 @@ export default function Session1() {
               rows={4}
               placeholder="학생이 알아야 할 개념과 원리, 그리고 개념 사이의 관계"
               help="무엇을 알아야 하는가?"
-              example="빛의 직진, 반사 법칙(입사각 = 반사각), 굴절이 일어나는 조건, 물체를 본다는 것은 물체에서 나온 빛이 눈에 들어오는 일이라는 것."
+              example={ex.standard.knowledgeHint}
             />
             <AutoField
               field="processSkill"
@@ -376,7 +374,7 @@ export default function Session1() {
               rows={4}
               placeholder="학생이 실제로 해내야 하는 교과 고유의 사고와 절차"
               help="무엇을 할 수 있어야 하는가?"
-              example="광선 다이어그램으로 빛의 경로를 표현하기, 관찰한 현상을 모형으로 설명하기, 예측과 결과를 비교하기."
+              example={ex.standard.processHint}
             />
             <AutoField
               field="valueAttitude"
@@ -384,7 +382,7 @@ export default function Session1() {
               rows={4}
               placeholder="문장에 없으면 내용 체계표에서 가져오거나 비워 두세요"
               help="어떤 태도로 대하는가? — 억지로 만들지 않아도 됩니다."
-              example="관찰한 증거에 근거해 설명하려는 태도, 자기 설명이 현상과 맞지 않을 때 고쳐 보려는 태도."
+              example={ex.standard.dims.v}
             />
           </div>
 
@@ -425,19 +423,19 @@ export default function Session1() {
           rightLabel="이렇게 바꿔 봅니다"
           items={[
             {
-              left: "지식·이해: 빛, 반사, 굴절",
-              right: "지식·이해: 빛이 매질을 지날 때 속력이 달라져 경로가 꺾인다.",
+              left: ex.standard.align.left,
+              right: `지식·이해: ${ex.keyIdea.narrowed}`,
               note: "단어 나열은 나중에 평가할 수 없습니다. 관계를 문장으로 적습니다.",
             },
             {
               left: "과정·기능: 모둠 활동, 발표",
-              right: "과정·기능: 관찰한 현상을 광선 다이어그램으로 표현한다.",
+              right: ex.standard.align.right,
               note: "활동의 형태가 아니라 학생이 수행하는 교과의 사고를 적습니다.",
             },
             {
               left: "가치·태도: 성실하게 참여한다.",
-              right: "가치·태도: 자신의 설명이 관찰과 맞지 않을 때 설명을 수정한다.",
-              note: "생활 태도가 아니라 과학을 하는 태도입니다.",
+              right: `가치·태도: ${ex.standard.dims.v}`,
+              note: `생활 태도가 아니라 ${ex.name}을(를) 하는 태도입니다.`,
             },
           ]}
         />

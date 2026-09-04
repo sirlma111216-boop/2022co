@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BookOpen, FlaskConical, MessageSquareQuote, PenLine, Sparkles } from "lucide-react";
+import { useSubjectExample } from "@/lib/subject";
 import { cn } from "@/lib/utils";
 
 export type BlockKind = "read" | "teacher" | "science" | "think" | "oneline";
@@ -7,7 +8,8 @@ export type BlockKind = "read" | "teacher" | "science" | "think" | "oneline";
 const META: Record<BlockKind, { label: string; icon: typeof BookOpen }> = {
   read: { label: "함께 읽어보기", icon: BookOpen },
   teacher: { label: "교수자 설명", icon: MessageSquareQuote },
-  science: { label: "과학 수업에서 보면", icon: FlaskConical },
+  // 라벨은 선택한 교과에 따라 바뀐다(아래에서 덮어쓴다). 여기 값은 마지막 안전망.
+  science: { label: "수업에서 보면", icon: FlaskConical },
   think: { label: "잠깐 생각해보기", icon: PenLine },
   oneline: { label: "한 문장으로 정리", icon: Sparkles },
 };
@@ -28,7 +30,9 @@ export function Block({
   title?: string;
   className?: string;
 }) {
-  const { label, icon: Icon } = META[kind];
+  const ex = useSubjectExample();
+  const { label: baseLabel, icon: Icon } = META[kind];
+  const label = kind === "science" ? ex.lens : baseLabel;
   const dark = kind === "think";
 
   return (

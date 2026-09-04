@@ -137,9 +137,16 @@ const FIELD_LABEL: Record<string, string> = {
 };
 
 function buildPrompt(body: ReviewBody): string {
+  const subject = sanitize(body.subject) || "미기재";
   const lines: string[] = [];
-  lines.push(`교과: ${sanitize(body.subject) || "미기재"}`);
+  lines.push(`교과: ${subject}`);
   lines.push(`학교급: ${sanitize(body.schoolLevel) || "미기재"}`);
+  lines.push("");
+  // 음악 교사에게 과학 수행평가 사례를 먼저 들이미는 일이 없어야 한다
+  lines.push(
+    `※ 예시나 대안을 제시할 때는 반드시 ${subject} 교과의 맥락과 용어를 사용하세요. ` +
+      `다른 교과(특히 과학)의 사례를 먼저 들지 마세요. 선생님이 적은 단원과 성취기준을 그대로 재료로 삼습니다.`,
+  );
   lines.push("");
   lines.push("선생님이 작성한 내용:");
   for (const [k, v] of Object.entries(body.payload ?? {})) {

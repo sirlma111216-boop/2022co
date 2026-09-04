@@ -11,12 +11,14 @@ import { Disclosure } from "@/components/ui/disclosure";
 import { PageNav } from "@/components/layout/PageParts";
 import { AUTOPSY_CASES, ICEBREAK_OPTIONS } from "@/content/examples";
 import { useSession } from "@/lib/session-context";
+import { useSubjectExample } from "@/lib/subject";
 import { isFilled } from "@/lib/utils";
 import { POLL_AUTOPSY, type PollKey } from "@/lib/types";
 
 export default function Start() {
   const { session, votedPoll, castPoll, mode, design, profile, votes, markProgress } = useSession();
   const results = session?.pollResults ?? {};
+  const ex = useSubjectExample();
   const chose = votes[POLL_AUTOPSY] || design.autopsyChoice;
 
   // START 활동도 강사 화면의 「활동별 작성 현황」에 잡히게 한다.
@@ -131,7 +133,7 @@ export default function Start() {
                   field="unitName"
                   label="단원명"
                   single
-                  placeholder="예: 중2 과학 · 빛과 파동"
+                  placeholder={`예: ${profile?.schoolLevel === "고등학교" ? "고1" : "중2"} ${ex.name} · ${ex.unit}`}
                   help="교과서 단원명 그대로도 좋고, 선생님이 부르시는 이름도 좋습니다."
                 />
 

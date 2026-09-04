@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check, Cloud, CloudOff, ExternalLink, Loader2, Monitor, Presentation } from "lucide-react";
+import { SubjectSwitch } from "./SubjectSwitch";
 import { useSession } from "@/lib/session-context";
 import { STEPS, type StepId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,9 @@ function GlobalNav() {
             <Monitor className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">강사</span>
           </Link>
+
+          {/* 잘못 고른 교과로 150분을 버티지 않도록, 어디서든 바꿀 수 있게 둔다 */}
+          <SubjectSwitch />
 
           {/* 닉네임은 좁은 화면에서 자리를 많이 먹는다 — 상단 바가 두 줄로 깨지지 않게 숨긴다 */}
           {profile && <span className="hidden text-fine text-white/70 sm:inline">{profile.nickname}</span>}

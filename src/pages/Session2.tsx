@@ -21,7 +21,9 @@ import { LadderGame } from "@/components/activity/LadderGame";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ShareBar } from "@/components/wall/Wall";
 import { ReverseOrderGame } from "@/components/game/ReverseOrderGame";
-import { BAD_GOOD_QUESTIONS, ENDURING_PAIRS, QUESTION_JUDGE_OPTIONS, QUESTION_LADDER } from "@/content/examples";
+import { QUESTION_JUDGE_OPTIONS, QUESTION_LADDER } from "@/content/examples";
+import { OTHER_SUBJECT_PAIRS, otherSubject, useSubjectExample } from "@/lib/subject";
+import { SUBJECT_EXAMPLE_MAP } from "@/content/subjectExamples";
 import { useSession } from "@/lib/session-context";
 import { POLL_QUESTION } from "@/lib/types";
 import { cn, isFilled } from "@/lib/utils";
@@ -45,6 +47,10 @@ const PLACEMENTS = [
 
 export default function Session2() {
   const { design, update } = useSession();
+  const ex = useSubjectExample();
+  // 참고 사례는 늘 과학이 아니라, 내 교과가 아닌 다른 교과에서 하나 가져온다
+  const other = otherSubject(ex.id);
+  const SUBJECT_EXAMPLE_FOR_HINT = ex.id === "history" ? SUBJECT_EXAMPLE_MAP.music : SUBJECT_EXAMPLE_MAP.history;
   const a2done = isFilled(design.enduringUnderstanding);
   const a3done = isFilled(design.keyInquiry);
   const kept = (design.unitItems ?? []).filter((i) => !i.dropped);
@@ -113,20 +119,15 @@ export default function Session2() {
 
           <Block kind="science" title="좁혀 보기">
             <p>
-              <span className="text-ink-48">국가 수준</span> — "물체의 운동 변화는 물체에 작용하는 힘과
-              관련된다."
+              <span className="text-ink-48">국가 수준</span> — "{ex.keyIdea.national}"
             </p>
             <p>
-              이 한 문장은 중1 힘 단원부터 고등학교 역학까지 걸쳐 있습니다. 중2 「힘과 운동」 단원 하나를
-              위해서는 너무 넓습니다.
+              이 한 문장은 여러 학년에 걸쳐 있습니다. 「{ex.unit}」 단원 하나를 위해서는 너무 넓습니다.
             </p>
             <p>
-              <span className="text-ink-48">단원 수준으로 좁히면</span> — "물체에 작용하는 알짜힘이 0이 아닐
-              때 물체의 속도가 변한다."
+              <span className="text-ink-48">단원 수준으로 좁히면</span> — "{ex.keyIdea.narrowed}"
             </p>
-            <p>
-              좁히고 나니 무엇을 수업에서 확인해야 하는지가 분명해집니다. 알짜힘, 그리고 속도의 변화입니다.
-            </p>
+            <p>{ex.keyIdea.note}</p>
           </Block>
 
           <MustSay id="narrow-is-teachers-job" />
@@ -206,11 +207,26 @@ export default function Session2() {
             </ul>
           </Block>
 
+          {/* 맨 앞 한 장은 반드시 선택한 교과 사례. 나머지 교과는 접어 둔다. */}
           <CompareCards
             leftLabel="단순 지식"
             rightLabel="보다 깊은 이해"
-            items={ENDURING_PAIRS.map((p) => ({ left: p.left, right: p.right, note: p.note }))}
+            items={[
+              {
+                left: ex.enduring.simple,
+                right: ex.enduring.understanding,
+                note: ex.enduring.note,
+              },
+            ]}
           />
+
+          <Disclosure className="my-6" tone="parchment" title="다른 교과에서는?">
+            <CompareCards
+              leftLabel="단순 지식"
+              rightLabel="보다 깊은 이해"
+              items={OTHER_SUBJECT_PAIRS(ex.id)}
+            />
+          </Disclosure>
 
           <Block kind="teacher">
             <p>
@@ -218,9 +234,8 @@ export default function Session2() {
               남으면 시험이 끝났을 때 함께 사라집니다.
             </p>
             <p>
-              오른쪽 문장들은 조금 다릅니다. 학생이 처음 보는 상황을 만났을 때 꺼내 쓸 수 있는 생각입니다.
-              엘리베이터에서 몸이 무거워지는 느낌, 버스가 급정거할 때 몸이 앞으로 쏠리는 이유를 저 문장 하나로
-              설명해 볼 수 있으니까요.
+              오른쪽 문장은 조금 다릅니다. 학생이 처음 보는 상황을 만났을 때 꺼내 쓸 수 있는 생각입니다.
+              교과서에 없던 사례를 만나도 저 문장 하나로 설명해 볼 수 있으니까요.
             </p>
             <p>
               그래서 우리는 단원마다 이런 문장을 <strong>하나만</strong> 정합니다. 여러 개를 정하면 결국
@@ -295,7 +310,7 @@ export default function Session2() {
             recommend={60}
             placeholder="국가 수준 핵심 아이디어를 이번 단원 크기로 좁혀 적어 주세요."
             hint1="교육과정 문서의 문장에서 이번 단원과 상관없는 학년·범위를 지워 보세요. 남는 것이 단원 수준입니다."
-            example="국가 수준: 물체의 운동 변화는 물체에 작용하는 힘과 관련된다. → 단원 수준: 물체에 작용하는 알짜힘이 0이 아닐 때 물체의 속도가 변한다."
+            example={`국가 수준: ${ex.keyIdea.national} → 단원 수준: ${ex.keyIdea.narrowed}`}
           />
 
           <AutoField
@@ -306,7 +321,7 @@ export default function Session2() {
             placeholder="'~이다', '~한다'로 끝나는 완결된 문장으로 적어 주세요."
             hint1="위에 적은 '공통으로 흐르는 생각'을 그대로 문장으로 펴 보세요. 주어와 서술어를 갖추면 됩니다."
             hint2="'A는 B와 관계가 있다', 'A가 달라지면 B가 달라진다' 같은 관계문 형태가 가장 쉽습니다."
-            example="빛이 다른 물질을 지날 때 속력이 달라지기 때문에 경로가 꺾이고, 우리는 그 경로를 따라 들어온 빛으로 물체를 본다."
+            example={ex.enduring.understanding}
           />
 
           <SelfCheck
@@ -332,7 +347,15 @@ export default function Session2() {
             lead="정답을 맞히게 하는 질문과, 학생을 계속 생각하게 만드는 질문은 다릅니다."
           />
 
-          {/* 먼저 판별하게 한다 */}
+          {/*
+            이 네 질문만은 교과별로 바꾸지 않는다. 방 전체가 같은 것을 놓고 판단해야
+            집계가 의미를 갖고, 강사의 "C와 D가 갈렸을 겁니다"도 성립한다.
+          */}
+          <p className="mb-3 rounded-md bg-canvas-parchment px-4 py-3 text-caption text-ink-48">
+            아래 네 질문은 모든 교과가 <strong className="font-semibold text-ink">함께 판단하는 공통 예시</strong>
+            입니다(과학 소재). 판단하는 기준은 교과와 상관없이 같습니다 — 바로 아래에서 선생님 교과의 질문으로
+            이어집니다.
+          </p>
           <ChoicePoll
             pollId={POLL_QUESTION}
             question="이 중 학생들이 가장 오래 생각하고 서로 다른 근거를 이야기할 가능성이 높은 질문은 무엇입니까?"
@@ -383,13 +406,13 @@ export default function Session2() {
                 </div>
                 <div className="space-y-3 bg-canvas px-5 py-4">
                   <p className="text-body-sm leading-[1.68] text-ink-80">{q.desc}</p>
-                  <p className="rounded-md bg-canvas-parchment px-4 py-3 text-body-sm text-ink">
-                    <span className="mr-2 text-fine font-semibold text-ink-48">힘과 운동</span>
-                    {q.science}
+                  <p className="rounded-md bg-action/8 px-4 py-3 text-body-sm text-ink">
+                    <span className="mr-2 text-fine font-semibold text-action">{ex.name} · {ex.unit}</span>
+                    {[ex.inquiry.factual, ex.inquiry.conceptual, ex.inquiry.debatable][i]}
                   </p>
-                  <p className="rounded-md bg-canvas-parchment px-4 py-3 text-body-sm text-ink">
-                    <span className="mr-2 text-fine font-semibold text-ink-48">빛</span>
-                    {q.light}
+                  <p className="rounded-md bg-canvas-parchment px-4 py-3 text-body-sm text-ink-80">
+                    <span className="mr-2 text-fine font-semibold text-ink-48">참고 · {other.name}</span>
+                    {[other.inquiry.factual, other.inquiry.conceptual, other.inquiry.debatable][i]}
                   </p>
                 </div>
               </div>
@@ -413,7 +436,7 @@ export default function Session2() {
               바꿔 보기 연습
             </p>
             <ul className="divide-y divide-hairline">
-              {BAD_GOOD_QUESTIONS.map((q, i) => (
+              {[ex.badGood, other.badGood, SUBJECT_EXAMPLE_FOR_HINT.badGood].map((q, i) => (
                 <li key={i} className="grid gap-2 px-5 py-4 sm:grid-cols-2 sm:gap-6">
                   <span className="text-body-sm text-ink-48">{q.bad}</span>
                   <span className="text-body-sm text-ink">→ {q.good}</span>
@@ -467,7 +490,7 @@ export default function Session2() {
             placeholder="물음표로 끝나는 한 문장으로 적어 주세요."
             hint1="영속적 이해 문장을 의문문으로 바꿔 보세요. 그다음 '항상 그럴까?', '예외는 없을까?'를 붙이면 단단해집니다."
             hint2="학생마다 다른 답이 나올 여지가 없다면, 아직 확인 질문에 가깝습니다."
-            example="힘이 작용하는데도 물체의 속력이 변하지 않는 경우가 있을까?"
+            example={ex.inquiry.conceptual}
           />
 
           <SelfCheck
@@ -491,21 +514,21 @@ export default function Session2() {
                 label="① 확인 질문"
                 rows={2}
                 placeholder="사실과 개념을 확인하는 질문"
-                example="알짜힘이 0일 때 물체의 속도는 어떻게 되나요?"
+                example={ex.inquiry.factual}
               />
               <AutoField
                 field="inquiryConcept"
                 label="② 연결 질문"
                 rows={2}
                 placeholder="여러 개념 사이의 관계를 생각하게 하는 질문"
-                example="힘이 작용하는데도 물체의 속도가 변하지 않는 경우가 있을까요?"
+                example={ex.inquiry.conceptual}
               />
               <AutoField
                 field="inquiryDebate"
                 label="③ 확장 또는 논쟁 질문"
                 rows={2}
                 placeholder="새로운 상황에 적용하거나 판단하게 하는 질문"
-                example="자율주행차의 급정거 기준을 정한다면 무엇을 근거로 삼아야 할까요?"
+                example={ex.inquiry.debatable}
               />
             </div>
           </Disclosure>

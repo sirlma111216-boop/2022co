@@ -1,24 +1,30 @@
 import { HelpCircle } from "lucide-react";
 import { TERM_MAP, type Term } from "@/content/terms";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { subjectTermExample, useSubjectExample } from "@/lib/subject";
 import { cn } from "@/lib/utils";
 
 const ROWS: { key: keyof Term; label: string; num: string }[] = [
   { key: "oneLine", label: "한 줄 정의", num: "①" },
   { key: "easy", label: "쉬운 설명", num: "②" },
-  { key: "science", label: "과학 수업 예", num: "③" },
+  // ③만 교과를 탄다. ①②④⑤는 이론이라 교과와 무관하다 — 13벌로 복사하지 않는다.
+  { key: "science", label: "예시", num: "③" },
   { key: "misconception", label: "흔히 하는 오해", num: "④" },
   { key: "summary", label: "한 문장 정리", num: "⑤" },
 ];
 
 export function TermBody({ term }: { term: Term }) {
+  const ex = useSubjectExample();
+  // 이 용어에 딱 맞는 교과 예시가 있으면 그것을 쓰고, 없으면 원래의 과학 예시를 쓴다
+  const mine = subjectTermExample(term.id, ex);
+
   return (
     <dl className="divide-y divide-hairline">
       {ROWS.map(({ key, label, num }) => (
         <div key={key} className="grid gap-1.5 py-4 sm:grid-cols-[132px_1fr] sm:gap-5">
           <dt className="flex items-baseline gap-1.5 text-caption font-semibold text-ink-48">
             <span className="text-action">{num}</span>
-            {label}
+            {key === "science" ? (mine ? `${label} (${ex.name})` : `${label} (과학)`) : label}
           </dt>
           <dd
             className={cn(
@@ -27,7 +33,7 @@ export function TermBody({ term }: { term: Term }) {
               key === "misconception" && "text-ink-80",
             )}
           >
-            {term[key]}
+            {key === "science" ? (mine ?? term[key]) : term[key]}
           </dd>
         </div>
       ))}

@@ -17,6 +17,8 @@ const DESIGN_MIRROR = (sid: string, uid: string) => `bl.mirror.${sid}.${uid}`;
 const POLL_KEY = (sid: string) => `bl.voted.poll.${sid}`;
 const TASK_POLL_KEY = (sid: string) => `bl.voted.task.${sid}`;
 const VOTES_KEY = (sid: string) => `bl.votes.${sid}`;
+/** 강의 예시 교과 — 이 브라우저에만 남는다(강사 노트북) */
+const LECTURE_SUBJECT_KEY = "bl.lectureSubject";
 
 interface Cache {
   sessionId: string | null;
@@ -36,6 +38,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [votedPoll, setVotedPoll] = useState<PollKey | null>(null);
   const [votedTask, setVotedTask] = useState<TaskPollKey | null>(null);
   const [votes, setVotes] = useState<Record<string, string>>({});
+  const [lectureSubject, setLectureSubjectState] = useState<string>(
+    () => localStorage.getItem(LECTURE_SUBJECT_KEY) ?? "",
+  );
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Partial<DesignDoc>>({});
@@ -229,6 +234,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [sessionId, votes],
   );
 
+  const setLectureSubject = useCallback((subject: string) => {
+    setLectureSubjectState(subject);
+    if (subject) localStorage.setItem(LECTURE_SUBJECT_KEY, subject);
+    else localStorage.removeItem(LECTURE_SUBJECT_KEY);
+  }, []);
+
+  /**
+   * 교과만 바꾼다. 설계안은 손대지 않는다 —
+   * 바뀌는 것은 화면에 뜨는 예시와 AI 에 보내는 맥락뿐이다.
+   */
+  const setSubject = useCallback(
+    async (subject: string) => {
+      setProfile((prev) => {
+        const next = prev ? { ...prev, subject } : prev;
+        if (next && sessionId && uid) {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ sessionId, uid, profile: next }));
+        }
+        return next;
+      });
+      if (sessionId && uid) {
+        await repo.updateProfileSubject(sessionId, uid, subject).catch(() => {});
+      }
+    },
+    [sessionId, uid],
+  );
+
   const value = useMemo<SessionState>(
     () => ({
       ready,
@@ -253,6 +284,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       castTaskPoll,
       votes,
       castVote,
+      lectureSubject,
+      setLectureSubject,
+      setSubject,
     }),
     [
       ready,
@@ -274,6 +308,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       castTaskPoll,
       votes,
       castVote,
+      lectureSubject,
+      setLectureSubject,
+      setSubject,
     ],
   );
 

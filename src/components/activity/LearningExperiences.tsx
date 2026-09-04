@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { useSession } from "@/lib/session-context";
+import { useSubjectExample } from "@/lib/subject";
 import type { LearningExperience } from "@/lib/types";
 
 const MAX = 5;
@@ -15,6 +16,7 @@ const MAX = 5;
  * 자기가 쓴 말로 연결해야 정렬이 눈에 보인다.
  */
 export function LearningExperiences() {
+  const ex = useSubjectExample();
   const { design, update } = useSession();
   const items = design.learningExperiences ?? [];
 
@@ -60,7 +62,7 @@ export function LearningExperiences() {
               <Input
                 id={`le-what-${i}`}
                 value={it.what}
-                placeholder="예: 정지거리 자료를 표에서 그래프로 바꾸고 경향 읽기"
+                placeholder={`예: ${ex.experiences[0].what}`}
                 onChange={(e) => patch(i, { what: e.target.value })}
               />
             </div>

@@ -15,13 +15,8 @@ import { Disclosure } from "@/components/ui/disclosure";
 import { Label, Textarea } from "@/components/ui/input";
 import { ShareBar } from "@/components/wall/Wall";
 import { Bars } from "@/components/poll/Poll";
-import {
-  AMBIGUOUS_TASK,
-  BAD_ELEMENTS,
-  FEEDBACK_GUIDE,
-  GRASPS_EXAMPLE,
-  RUBRIC_EXAMPLE,
-} from "@/content/examples";
+import { BAD_ELEMENTS, FEEDBACK_GUIDE } from "@/content/examples";
+import { useSubjectExample } from "@/lib/subject";
 import { useSession } from "@/lib/session-context";
 import { cn, isFilled } from "@/lib/utils";
 import { RED_TEAM_CHECKS, type DesignField } from "@/lib/types";
@@ -39,20 +34,30 @@ const SECTIONS = [
   { id: "s3-feedback", label: "과정 중심 피드백" },
 ];
 
-const CONTEXT_FIELDS: { field: DesignField; letter: string; label: string; help: string; hint1?: string; example: string }[] = [
+type ContextField = {
+  field: DesignField;
+  letter: string;
+  label: string;
+  help: string;
+  hint1?: string;
+  example: string;
+};
+
+/** 예시만 교과별로 갈아 끼운다 — 묻는 질문과 순서는 모든 교과에서 같다 */
+const contextFields = (ex: ReturnType<typeof useSubjectExample>): ContextField[] => [
   {
     field: "graspsR",
     letter: "R",
     label: "Role · 학생은 어떤 역할인가?",
     help: "현실에 있을 법한 역할이면 충분합니다.",
-    example: "학교 안전 자문단의 학생 위원",
+    example: ex.grasps.r,
   },
   {
     field: "graspsA",
     letter: "A",
     label: "Audience · 누구에게 보여 주는가?",
     help: "교사 말고 다른 대상을 정해 보세요.",
-    example: "학교 안전 협의회(교사·학부모·지역 담당자)",
+    example: ex.grasps.a,
   },
   {
     field: "graspsS",
@@ -60,19 +65,21 @@ const CONTEXT_FIELDS: { field: DesignField; letter: string; label: string; help:
     label: "Situation · 어떤 상황인가?",
     help: "주어지는 자료와 조건, 갈등 요소.",
     hint1: "여기에 '자료'를 넣으면 과제가 단단해집니다. 학생이 해석할 표나 그래프를 하나 정해 보세요.",
-    example: "통학로 사진과 속도별 정지거리 자료가 주어지고, 통행 불편과 안전이라는 상반된 의견이 있다.",
+    example: ex.grasps.s,
   },
   {
     field: "graspsS2",
     letter: "S",
     label: "Standards · 무엇을 기준으로 판단하는가?",
     help: "평가요소의 예고편. ACTIVITY 5와 이어집니다.",
-    example: "① 과학 개념의 정확성 ② 자료 해석의 타당성 ③ 주장과 근거의 연결",
+    example: ex.grasps.standards,
   },
 ];
 
 export default function Session3() {
   const { design, update, session, votedTask, castTaskPoll, mode } = useSession();
+  const ex = useSubjectExample();
+  const CONTEXT_FIELDS = contextFields(ex);
 
   const a4done = isFilled(design.graspsG) && isFilled(design.graspsP);
   const r1done = (design.redTeamFindings?.length ?? 0) > 0 || isFilled(design.performanceTaskAfter);
@@ -182,12 +189,12 @@ export default function Session3() {
 
           <div className="my-7 rounded-lg border border-hairline bg-canvas-parchment px-6 py-7">
             <p className="text-fine font-semibold uppercase tracking-[0.08em] text-ink-48">수행과제</p>
-            <p className="mt-2 text-lead text-ink">"{AMBIGUOUS_TASK.title}"</p>
+            <p className="mt-2 text-lead text-ink">"{ex.task.ambiguous}"</p>
           </div>
 
           <Block kind="read">
             <p>
-              이 과제만으로 <strong className="text-ink">"힘과 운동 변화 사이의 관계를 이해했는지"</strong>{" "}
+              이 과제만으로 <strong className="text-ink">"{ex.enduring.understanding}"</strong>를 이해했는지{" "}
               판단할 수 있을까요?
             </p>
           </Block>
@@ -251,15 +258,18 @@ export default function Session3() {
 
               <Block kind="teacher" title="양쪽 다 근거가 있습니다">
                 <ul className="space-y-2">
-                  {AMBIGUOUS_TASK.why.map((w, i) => (
+                  {ex.task.ambiguousWhy.map((w, i) => (
                     <li key={i} className="flex gap-2.5">
                       <span className="mt-[10px] h-1 w-1 shrink-0 rounded-pill bg-ink-48" />
                       <span>{w}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="pt-2 font-semibold text-ink">{AMBIGUOUS_TASK.verdict}</p>
-                <p>{AMBIGUOUS_TASK.fix}</p>
+                <p className="pt-2 font-semibold text-ink">
+                  이 과제가 반드시 나쁘다기보다, 무엇을 증거로 보려는지가 아직 충분히 선명하지 않다고 말하는
+                  편이 정확합니다.
+                </p>
+                <p>{ex.task.ambiguousFix}</p>
               </Block>
 
               <TermCard id="performance" />
@@ -285,10 +295,19 @@ export default function Session3() {
 
           <div className="my-7 overflow-hidden rounded-lg border border-hairline">
             <div className="bg-canvas-parchment px-5 py-3">
-              <p className="text-caption font-semibold text-ink-48">{GRASPS_EXAMPLE.title}</p>
+              <p className="text-caption font-semibold text-ink-48">
+                {ex.name} 완성 사례 · 「{ex.unit}」
+              </p>
             </div>
             <ul className="divide-y divide-hairline">
-              {GRASPS_EXAMPLE.rows.map((r, i) => (
+              {[
+                { letter: "G", name: "Goal · 목표", q: "무엇을 해결해야 하는가?", value: ex.grasps.g },
+                { letter: "R", name: "Role · 역할", q: "학생은 어떤 역할인가?", value: ex.grasps.r },
+                { letter: "A", name: "Audience · 대상", q: "누구에게 보여 주는가?", value: ex.grasps.a },
+                { letter: "S", name: "Situation · 상황", q: "어떤 상황인가?", value: ex.grasps.s },
+                { letter: "P", name: "Product · 산출물", q: "무엇을 만들거나 수행하는가?", value: ex.grasps.p },
+                { letter: "S", name: "Standards · 기준", q: "무엇을 기준으로 판단하는가?", value: ex.grasps.standards },
+              ].map((r, i) => (
                 <li key={i} className="grid gap-2 bg-canvas px-5 py-4 sm:grid-cols-[190px_1fr] sm:gap-6">
                   <div>
                     <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-pill bg-action text-caption font-semibold text-white">
@@ -375,7 +394,7 @@ export default function Session3() {
                 help="학생이 해결해야 할 문제나 도전을 한 문장으로."
                 hint1="'조사한다'로 끝나면 아직 과제가 아닙니다. '판단한다 / 제안한다 / 결정한다'로 끝나게 바꿔 보세요."
                 hint2="내가 정한 핵심 행동(설명한다·표현한다 등)이 이 문장 안에 들어 있는지 확인해 보세요."
-                example="어린이보호구역 제한속도를 낮출지 정지거리 자료를 근거로 판단해 제안한다."
+                example={ex.grasps.g}
               />
             </div>
           </div>
@@ -393,7 +412,7 @@ export default function Session3() {
                 rows={3}
                 help="산출물의 형태와 분량. 구체적일수록 좋습니다."
                 hint1="'발표'만으로는 부족합니다. 그 안에 무엇이 반드시 들어가야 하는지까지 적어 보세요."
-                example="A4 한 장 제안서 + 3분 구두 설명 (근거로 삼은 자료의 특정 부분을 반드시 지목할 것)"
+                example={ex.grasps.p}
               />
             </div>
           </div>
@@ -499,10 +518,8 @@ export default function Session3() {
             </ul>
           </div>
 
-          <Block kind="science" title="과학 수행평가에서 쓸 만한 평가요소">
-            <p>
-              과학 개념의 정확성 · 증거의 적절성 · 자료 해석 · 과학적 설명 · 모형의 타당성 · 주장과 근거의 연결.
-            </p>
+          <Block kind="science" title={ex.assessLens}>
+            <p>{ex.elements.map((e) => e.name).join(" · ")}.</p>
             <p>
               다만 <strong>모든 평가에서 전부 사용할 필요는 없습니다.</strong> 이번 과제에서 정말 보고 싶은
               것 2~3개만 고르세요.
@@ -512,11 +529,15 @@ export default function Session3() {
           <div className="my-7 overflow-hidden rounded-lg border border-hairline">
             <div className="bg-canvas-parchment px-5 py-3">
               <p className="text-caption font-semibold text-ink-48">
-                수행수준 서술 예시 · {RUBRIC_EXAMPLE.element}
+                수행수준 서술 예시 · {ex.rubric.element}
               </p>
             </div>
             <ul className="divide-y divide-hairline">
-              {RUBRIC_EXAMPLE.levels.map((l) => (
+              {[
+                { level: "상", text: ex.rubric.high },
+                { level: "중", text: ex.rubric.mid },
+                { level: "하", text: ex.rubric.low },
+              ].map((l) => (
                 <li key={l.level} className="grid gap-2 bg-canvas px-5 py-4 sm:grid-cols-[60px_1fr] sm:gap-5">
                   <span className="text-tagline text-action">{l.level}</span>
                   <span className="text-body-sm leading-[1.68] text-ink-80">{l.text}</span>
@@ -654,7 +675,7 @@ export default function Session3() {
           </Block>
 
           <div className="my-7 grid gap-4 sm:grid-cols-3">
-            {FEEDBACK_GUIDE.map((f) => (
+            {FEEDBACK_GUIDE.map((f) => ({ ...f, example: ex.feedback[f.key as "up" | "back" | "forward"] })).map((f) => (
               <div key={f.key} className="rounded-lg border border-hairline bg-canvas px-5 py-5">
                 <p className="text-fine font-semibold uppercase tracking-[0.08em] text-action">{f.name}</p>
                 <p className="mt-2 text-body font-semibold leading-[1.45] text-ink">{f.q}</p>
@@ -673,7 +694,7 @@ export default function Session3() {
               rows={2}
               placeholder="학생에게 목표와 기준을 알려 주는 한 문장"
               hint1="방금 정한 '가장 중요한 평가요소'를 학생의 말로 바꿔 보세요."
-              example="이번 과제에서 볼 것은 세 가지예요. 개념이 정확한지, 자료를 제대로 읽었는지, 주장과 근거가 연결되는지."
+              example={ex.feedback.up}
             />
             <AutoField
               field="feedBack"
@@ -681,7 +702,7 @@ export default function Session3() {
               rows={2}
               placeholder="현재 위치를 알려 주는 한 문장"
               hint1="잘잘못이 아니라 기준에 비추어 지금 어디쯤인지를 말합니다."
-              example="자료는 잘 찾았어요. 다만 그 표의 어느 숫자를 근거로 삼았는지가 아직 글에 없어요."
+              example={ex.feedback.back}
             />
             <AutoField
               field="feedForward"
@@ -689,7 +710,7 @@ export default function Session3() {
               rows={2}
               placeholder="바로 실행할 수 있는 다음 한 걸음"
               hint1="고칠 곳을 하나만 짚어 주는 편이 실제로 더 잘 고쳐집니다."
-              example="다음 수정본에서는 '표의 40km/h 줄을 보면'처럼 근거를 한 문장으로 콕 집어 넣어 보세요."
+              example={ex.feedback.forward}
             />
           </div>
 

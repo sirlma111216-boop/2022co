@@ -74,6 +74,7 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
       };
     case "inquiry":
       return {
+        unit: d.unitName,
         standard: d.achievementStandard,
         enduring: d.enduringUnderstanding,
         original: d.inquiryOriginal,
@@ -84,6 +85,7 @@ export function buildPayload(task: AiTask, d: DesignDoc): Record<string, string>
       };
     case "task":
       return {
+        unit: d.unitName,
         standard: d.achievementStandard,
         enduring: d.enduringUnderstanding,
         g: d.graspsG,

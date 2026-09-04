@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Plus, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { ELEMENT_BANK } from "@/content/examples";
 import { useSession } from "@/lib/session-context";
+import { useSubjectExample } from "@/lib/subject";
 import { EMPTY_ELEMENT, type AssessmentElement } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ const LEVELS: { key: keyof Omit<AssessmentElement, "name">; label: string; hint:
  * 전부 쓰고 싶은 사람을 막지는 않는다 — 버튼 하나로 모두 펼칠 수 있다.
  */
 export function RubricBuilder() {
+  const ex = useSubjectExample();
   const { design, update } = useSession();
   const items = design.assessmentElements?.length ? design.assessmentElements : [{ ...EMPTY_ELEMENT }];
   const keyIndex = Math.min(design.keyAssessmentIndex ?? 0, items.length - 1);
@@ -61,7 +62,7 @@ export function RubricBuilder() {
           아래에서 누르면 빈 칸에 채워집니다. 직접 적으셔도 됩니다. 최대 {MAX}개.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {ELEMENT_BANK.map((e) => (
+          {ex.elements.map((e) => (
             <button
               key={e.name}
               type="button"
