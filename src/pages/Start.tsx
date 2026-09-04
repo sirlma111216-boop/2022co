@@ -5,6 +5,7 @@ import { PresenterTip } from "@/components/teach/elements";
 import { Bars, ChoiceList } from "@/components/poll/Poll";
 import { ChoicePoll } from "@/components/activity/ChoicePoll";
 import { DiscussionTimer } from "@/components/activity/DiscussionTimer";
+import { LadderGame } from "@/components/activity/LadderGame";
 import { AutoField } from "@/components/activity/AutoField";
 import { Disclosure } from "@/components/ui/disclosure";
 import { PageNav } from "@/components/layout/PageParts";
@@ -61,8 +62,10 @@ export default function Start() {
                   <p className="text-body-sm leading-[1.7] text-ink">
                     같은 수업을 보고도 판단은 갈릴 수 있습니다.
                     <br />
-                    옆 선생님과 1분 동안 자신의 선택 이유를 비교해 보세요.
+                    선생님 두 분의 의견을 직접 들어보겠습니다.
                   </p>
+                  {/* 두 분을 어떻게 고르는가 — 지목보다 사다리가 훨씬 편하게 말문을 연다 */}
+                  <LadderGame />
                 </div>
                 <DiscussionTimer seconds={60} label="선택 이유 비교하기" />
               </>

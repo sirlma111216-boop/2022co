@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Bars } from "@/components/poll/Poll";
 import { WallDialog } from "@/components/wall/Wall";
+import { LadderPanel } from "@/components/teach/LadderPanel";
 import { TIMELINE } from "@/content/timeline";
 import { MUST_SAY } from "@/content/mustSay";
 import { AUTOPSY_CASES, ICEBREAK_OPTIONS, QUESTION_JUDGE_OPTIONS } from "@/content/examples";
@@ -261,6 +262,11 @@ export default function Presenter() {
                 ))}
               </ul>
             </Panel>
+
+            {/* START 발표자 뽑기 — 부검실 응답 바로 뒤에 이어서 진행한다 */}
+            {watching && (
+              <LadderPanel sessionId={watching} session={session} participants={participants} />
+            )}
 
             {/* 선택 활동 응답 — 연수생 화면에 나오는 순서 그대로 */}
             <Panel

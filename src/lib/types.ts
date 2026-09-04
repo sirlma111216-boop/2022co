@@ -205,6 +205,13 @@ export interface Participant {
   joinedAt: number;
   currentStep: StepId;
   progress: Partial<Record<ActivityId, boolean>>;
+  /**
+   * 사다리타기 — 참가 신청한 라운드. 강사가 초기화하면 round 가 올라가므로
+   * 이 값이 현재 라운드와 다르면 자동으로 '참가하지 않음'이 된다(지울 필요가 없다).
+   */
+  ladderRound?: number;
+  /** 상단에서 고른 자리. 아직 안 골랐으면 null */
+  ladderSeat?: number | null;
 }
 
 export interface WallComment {
@@ -242,6 +249,54 @@ export interface Reflection {
   createdAt: number;
 }
 
+/* ── 사다리타기 발표자 뽑기 ───────────────────────────────────────────────
+   상태는 세션 문서 한 곳에만 둔다. 강사만 쓰고 모두가 읽는다 —
+   그래야 강사 화면과 연수생 화면이 반드시 같은 사다리를 본다.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/** 가로줄 하나 — row 층에서 left 열과 left+1 열을 잇는다 */
+export interface LadderRung {
+  row: number;
+  left: number;
+}
+
+/** 확정된 열 하나 = 자리를 고른 사람 하나 */
+export interface LadderSlot {
+  uid: string;
+  nick: string;
+}
+
+export interface LadderState {
+  /** 초기화할 때마다 1씩 오른다. 이전 라운드의 자리·잠금은 전부 무효가 된다. */
+  round: number;
+  /** seating: 자리 고르는 중 / locked: 마감 / running: 결과 공개(애니메이션 포함) */
+  status: "seating" | "locked" | "running";
+  /** 사다리를 만드는 유일한 씨앗. 강사가 결과 보기를 누를 때 한 번만 정해진다. */
+  seed: string;
+  rows: number;
+  /** 열 순서 = 확정된 참가자. running 이 되는 순간 고정된다. */
+  slots: LadderSlot[];
+  /** 하단 「발표!」 칸 */
+  presentSlots: number[];
+  /** 비상 추첨으로 뽑았다면 그 두 사람의 uid — 이때는 사다리를 그리지 않는다 */
+  emergencyPresenters?: string[];
+  startedAt: number;
+}
+
+/** 아직 아무도 손대지 않은 상태 — 문서에 ladder 필드가 없을 때 쓰는 기본값 */
+export const EMPTY_LADDER: LadderState = {
+  round: 1,
+  status: "seating",
+  seed: "",
+  rows: 0,
+  slots: [],
+  presentSlots: [],
+  startedAt: 0,
+};
+
+/** 자리 잠금은 pollResults map 안에 넣는다 — 보안 규칙을 손대지 않기 위한 선택 */
+export const ladderSeatKey = (round: number, seat: number) => `lad${round}_${seat}`;
+
 export type PollKey = "A" | "B" | "C" | "D";
 export type TaskPollKey = "yes" | "notEnough";
 
@@ -261,6 +316,8 @@ export interface SessionDoc {
    */
   pollResults: Record<string, number>;
   taskPollResults: Record<TaskPollKey, number>;
+  /** 사다리타기 발표자 뽑기 — 없으면 아직 한 번도 시작하지 않은 것이다 */
+  ladder?: LadderState;
 }
 
 /** 새로 추가된 선택형 활동들 */
