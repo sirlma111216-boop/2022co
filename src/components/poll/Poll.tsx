@@ -76,12 +76,13 @@ export function ChoiceList<K extends string>({
           <button
             key={o.key}
             type="button"
-            disabled={disabled || !!selected}
+            disabled={disabled}
             onClick={() => onSelect(o.key)}
             className={cn(
               "rounded-lg border px-5 py-4 text-left transition-transform duration-150 active:scale-[0.98]",
               on ? "border-action bg-action/[0.06]" : "border-hairline bg-canvas hover:border-ink-48/40",
-              (disabled || (!!selected && !on)) && "opacity-60",
+              // 선택 후에도 다른 보기를 누를 수 있다 — 완전히 죽은 것처럼 보이지 않게 한다
+              disabled ? "opacity-60" : !!selected && !on && "opacity-80",
             )}
           >
             <span className="flex items-baseline gap-3">

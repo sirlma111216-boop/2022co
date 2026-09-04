@@ -67,9 +67,12 @@ export interface Repo {
   saveDesign(sessionId: string, uid: string, patch: Partial<DesignDoc>): Promise<void>;
   markProgress(sessionId: string, uid: string, activityId: ActivityId): Promise<void>;
   setParticipantStep(sessionId: string, uid: string, step: StepId): Promise<void>;
-  /** 선택형 활동 집계 — key 는 pollResults map 안의 키 (예: 'A', 'autopsy_B') */
-  vote(sessionId: string, key: string): Promise<void>;
-  voteTask(sessionId: string, key: TaskPollKey): Promise<void>;
+  /**
+   * 선택형 활동 집계 — key 는 pollResults map 안의 키 (예: 'A', 'autopsy_B').
+   * prevKey 를 주면 그 칸을 1 줄이고 새 칸을 1 올린다(선택을 바꾼 경우).
+   */
+  vote(sessionId: string, key: string, prevKey?: string): Promise<void>;
+  voteTask(sessionId: string, key: TaskPollKey, prevKey?: TaskPollKey): Promise<void>;
   watchPosts(sessionId: string, activityId: ActivityId, cb: (posts: Post[]) => void): Unsub;
   addPost(sessionId: string, post: Omit<Post, "id" | "createdAt" | "likes" | "likedBy" | "isPinned" | "comments">): Promise<void>;
   toggleLike(sessionId: string, postId: string, uid: string, liked: boolean): Promise<void>;
@@ -209,19 +212,22 @@ const localRepo: Repo = {
     write(pkey, list.map((p) => (p.uid === uid ? { ...p, currentStep: step } : p)));
   },
 
-  async vote(sessionId, key) {
+  async vote(sessionId, key, prevKey) {
+    if (prevKey === key) return;
     const skey = LS.session(sessionId);
     const s = read<SessionDoc>(skey, makeLocalSession(sessionId));
-    write(skey, { ...s, pollResults: { ...s.pollResults, [key]: (s.pollResults[key] ?? 0) + 1 } });
+    const next = { ...s.pollResults, [key]: (s.pollResults[key] ?? 0) + 1 };
+    if (prevKey) next[prevKey] = Math.max(0, (s.pollResults[prevKey] ?? 0) - 1);
+    write(skey, { ...s, pollResults: next });
   },
 
-  async voteTask(sessionId, key) {
+  async voteTask(sessionId, key, prevKey) {
+    if (prevKey === key) return;
     const skey = LS.session(sessionId);
     const s = read<SessionDoc>(skey, makeLocalSession(sessionId));
-    write(skey, {
-      ...s,
-      taskPollResults: { ...s.taskPollResults, [key]: (s.taskPollResults[key] ?? 0) + 1 },
-    });
+    const next = { ...s.taskPollResults, [key]: (s.taskPollResults[key] ?? 0) + 1 };
+    if (prevKey) next[prevKey] = Math.max(0, (s.taskPollResults[prevKey] ?? 0) - 1);
+    write(skey, { ...s, taskPollResults: next });
   },
 
   watchPosts(sessionId, activityId, cb) {
@@ -457,12 +463,18 @@ const fsRepo: Repo = {
     );
   },
 
-  async vote(sessionId, key) {
-    await updateDoc(sessionDoc(sessionId), { [`pollResults.${key}`]: increment(1) });
+  async vote(sessionId, key, prevKey) {
+    if (prevKey === key) return;
+    const patch: Record<string, ReturnType<typeof increment>> = { [`pollResults.${key}`]: increment(1) };
+    if (prevKey) patch[`pollResults.${prevKey}`] = increment(-1);
+    await updateDoc(sessionDoc(sessionId), patch);
   },
 
-  async voteTask(sessionId, key) {
-    await updateDoc(sessionDoc(sessionId), { [`taskPollResults.${key}`]: increment(1) });
+  async voteTask(sessionId, key, prevKey) {
+    if (prevKey === key) return;
+    const patch: Record<string, ReturnType<typeof increment>> = { [`taskPollResults.${key}`]: increment(1) };
+    if (prevKey) patch[`taskPollResults.${prevKey}`] = increment(-1);
+    await updateDoc(sessionDoc(sessionId), patch);
   },
 
   watchPosts(sessionId, activityId, cb) {

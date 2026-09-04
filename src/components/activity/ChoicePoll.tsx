@@ -52,7 +52,7 @@ export function ChoicePoll({
   const results = session?.pollResults ?? {};
 
   const pick = (key: string) => {
-    if (chosen) return;
+    if (chosen === key) return;
     update({ [choiceField]: key });
     void castVote(pollId, key);
   };
@@ -82,13 +82,13 @@ export function ChoicePoll({
             <button
               key={o.key}
               type="button"
-              disabled={!!chosen}
               onClick={() => pick(o.key)}
               className={cn(
                 "rounded-lg border px-5 py-4 text-left transition-transform duration-150",
-                !chosen && "hover:border-ink-48/50 active:scale-[0.98]",
+                "hover:border-ink-48/50 active:scale-[0.98]",
                 on ? "border-action bg-action/[0.06]" : "border-hairline bg-canvas",
-                chosen && !on && "opacity-55",
+                // 고르지 않은 카드도 계속 누를 수 있다는 것이 보이도록 살짝만 물린다
+                chosen && !on && "opacity-80",
               )}
             >
               <span className="flex items-baseline gap-2.5">
@@ -119,7 +119,7 @@ export function ChoicePoll({
 
       {!chosen && (
         <p className="mt-4 text-fine text-ink-48">
-          하나를 고르면 이유를 적는 칸과 전체 응답 분포가 열립니다.
+          하나를 고르면 이유를 적는 칸과 전체 응답 분포가 열립니다. 선택은 나중에 바꿔도 됩니다.
         </p>
       )}
 
@@ -143,6 +143,7 @@ export function ChoicePoll({
             <Bars data={data} />
             <p className="mt-5 border-t border-hairline pt-4 text-fine text-ink-48">
               정답은 표시하지 않습니다. 판단이 갈리는 것 자체가 오늘의 재료입니다.
+              생각이 바뀌면 위에서 다른 카드를 눌러 언제든 선택을 바꿀 수 있습니다.
             </p>
           </div>
 

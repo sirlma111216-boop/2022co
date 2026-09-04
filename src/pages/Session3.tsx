@@ -199,14 +199,13 @@ export default function Session3() {
               <button
                 key={key}
                 type="button"
-                disabled={!!votedTask}
                 onClick={() => void castTaskPoll(key)}
                 className={cn(
                   "rounded-lg border px-6 py-6 text-left transition-transform active:scale-[0.98]",
                   votedTask === key
                     ? "border-action bg-action/[0.06]"
                     : "border-hairline bg-canvas hover:border-ink-48/40",
-                  votedTask && votedTask !== key && "opacity-55",
+                  votedTask && votedTask !== key && "opacity-80",
                 )}
               >
                 <span className="block text-tagline text-ink">{big}</span>

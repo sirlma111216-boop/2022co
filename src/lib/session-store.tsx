@@ -189,20 +189,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const castPoll = useCallback(
     async (key: PollKey) => {
-      if (!sessionId || votedPoll) return;
+      // 선택은 언제든 바꿀 수 있다. 집계는 이전 칸에서 새 칸으로 옮긴다.
+      if (!sessionId || votedPoll === key) return;
+      const prev = votedPoll ?? undefined;
       setVotedPoll(key);
       localStorage.setItem(POLL_KEY(sessionId), key);
-      await repo.vote(sessionId, key).catch(() => {});
+      await repo.vote(sessionId, key, prev).catch(() => {});
     },
     [sessionId, votedPoll],
   );
 
   const castTaskPoll = useCallback(
     async (key: TaskPollKey) => {
-      if (!sessionId || votedTask) return;
+      if (!sessionId || votedTask === key) return;
+      const prev = votedTask ?? undefined;
       setVotedTask(key);
       localStorage.setItem(TASK_POLL_KEY(sessionId), key);
-      await repo.voteTask(sessionId, key).catch(() => {});
+      await repo.voteTask(sessionId, key, prev).catch(() => {});
     },
     [sessionId, votedTask],
   );
@@ -214,11 +217,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    */
   const castVote = useCallback(
     async (pollId: string, option: string) => {
-      if (!sessionId || votes[pollId]) return;
+      if (!sessionId || votes[pollId] === option) return;
+      const prev = votes[pollId];
       const next = { ...votes, [pollId]: option };
       setVotes(next);
       localStorage.setItem(VOTES_KEY(sessionId), JSON.stringify(next));
-      await repo.vote(sessionId, `${pollId}_${option}`).catch(() => {});
+      await repo
+        .vote(sessionId, `${pollId}_${option}`, prev ? `${pollId}_${prev}` : undefined)
+        .catch(() => {});
     },
     [sessionId, votes],
   );
