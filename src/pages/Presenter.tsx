@@ -234,6 +234,9 @@ export default function Presenter() {
               </div>
             </Panel>
 
+            {/* START 발표자 뽑기 — 목록 아래에 두면 스크롤로 지나치므로 맨 위에 둔다 */}
+            <LadderPanel sessionId={watching} session={session} participants={participants} />
+
             {/* 작성 현황 */}
             <Panel title="활동별 작성 현황" sub={`참여 인원 ${counts.total}명`}>
               <ul className="space-y-3">
@@ -262,11 +265,6 @@ export default function Presenter() {
                 ))}
               </ul>
             </Panel>
-
-            {/* START 발표자 뽑기 — 부검실 응답 바로 뒤에 이어서 진행한다 */}
-            {watching && (
-              <LadderPanel sessionId={watching} session={session} participants={participants} />
-            )}
 
             {/* 선택 활동 응답 — 연수생 화면에 나오는 순서 그대로 */}
             <Panel
